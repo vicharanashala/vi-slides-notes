@@ -7,6 +7,7 @@ export interface IPoll extends Document {
         text: string;
         votes: number;
     }[];
+    correctOptionIndex?: number;
     responses: {
         user: mongoose.Types.ObjectId;
         optionIndex: number;
@@ -46,6 +47,11 @@ const pollSchema = new Schema<IPoll>({
     isActive: {
         type: Boolean,
         default: true
+    },
+    correctOptionIndex: {
+        type: Number,
+        default: null,
+        required:false
     },
     resultsVisible: {
         type: Boolean,

@@ -9,6 +9,12 @@ let io: SocketServer;
 // Map to track socket -> user/session details for disconnect handling
 const socketMap = new Map<string, { userId: string; name: string; email: string; sessionCode: string }>();
 
+// Map to track pulse check responses per session
+const pulseCheckResponses = new Map<string, Set<string>>();
+
+// Map to keep live whiteboard drawing history per session
+const whiteboardHistory = new Map<string, Array<any>>();
+
 export const initSocket = (server: HttpServer) => {
     io = new SocketServer(server, {
         cors: {
@@ -99,11 +105,29 @@ export const initSocket = (server: HttpServer) => {
         });
 
         socket.on('whiteboard_draw', ({ sessionCode, data }) => {
+            // Save drawing action to history so users who reopen can catch up
+            if (!whiteboardHistory.has(sessionCode)) {
+                whiteboardHistory.set(sessionCode, []);
+            }
+            const existing = whiteboardHistory.get(sessionCode) || [];
+            existing.push(data);
+            // keep memory bounded
+            if (existing.length > 3000) {
+                existing.splice(0, existing.length - 3000);
+            }
+            whiteboardHistory.set(sessionCode, existing);
+
             socket.to(sessionCode).emit('whiteboard_draw', data);
         });
 
         socket.on('whiteboard_clear', ({ sessionCode }) => {
+            whiteboardHistory.set(sessionCode, []);
             socket.to(sessionCode).emit('whiteboard_clear');
+        });
+
+        socket.on('whiteboard_history_request', ({ sessionCode }) => {
+            const history = whiteboardHistory.get(sessionCode) || [];
+            socket.emit('whiteboard_history', history);
         });
 
         // Engagement Features
@@ -139,11 +163,20 @@ export const initSocket = (server: HttpServer) => {
 
         // Pulse Check Features
         socket.on('pulse_check_init', ({ sessionCode }) => {
+            // Initialize response tracking for this pulse check
+            pulseCheckResponses.set(sessionCode, new Set<string>());
             socket.to(sessionCode).emit('pulse_check_start');
         });
 
         socket.on('pulse_check_response', async ({ userId, sessionCode }) => {
             console.log(`💓 Pulse check response from user ${userId} in session ${sessionCode}`);
+            
+            // Track this response
+            if (!pulseCheckResponses.has(sessionCode)) {
+                pulseCheckResponses.set(sessionCode, new Set<string>());
+            }
+            pulseCheckResponses.get(sessionCode)?.add(userId);
+            
             try {
                 // Reward 15 bonus points for quick response
                 const user = await User.findByIdAndUpdate(userId, { $inc: { points: 15 } }, { new: true });
@@ -166,6 +199,14 @@ export const initSocket = (server: HttpServer) => {
                 if (user) {
                     io.to(sessionCode).emit('points_updated', { userId, points: user.points, name: user.name });
                 }
+                
+                // Emit updated response count to all users in session
+                const responseCount = pulseCheckResponses.get(sessionCode)?.size || 0;
+                io.to(sessionCode).emit('pulse_check_update', { 
+                    respondedCount: responseCount,
+                    userId,
+                    userName: user?.name || 'Unknown'
+                });
             } catch (error) {
                 console.error('❌ Pulse check reward error:', error);
             }

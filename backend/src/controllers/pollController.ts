@@ -3,6 +3,7 @@ import Poll from '../models/Poll';
 import Session from '../models/Session';
 import { emitToSession } from '../config/socket';
 import User from '../models/User';
+import { Types } from 'mongoose';
 
 // @desc    Create a new poll
 // @route   POST /api/polls
@@ -193,27 +194,29 @@ export const declarePollWinner = async (req: Request, res: Response): Promise<vo
             await User.findByIdAndUpdate(winner.user, { $inc: { points: 50 } });
         }
 
-        // Emit celebration event! 
+        // Save the chosen answer for query usage
+        poll.correctOptionIndex = optionIndex;
+        poll.isActive = false;
+        await poll.save();
+
+        // Notify everyone about the chosen correct answer
         emitToSession(session.code, 'poll_winner_declared', {
             pollId: poll._id,
             winningOptionIndex: optionIndex,
             winningOptionText: poll.options[optionIndex].text,
-            winnerCount: winners.length
+            winnerCount: winners.length,
+            winnerIds: winners.map((w: any) => w.user.toString()) // Include winner IDs for frontend filtering
         });
 
-        // Trigger confetti for everyone
+        // Emit poll update so UI refreshes
+        emitToSession(session.code, 'poll_update', poll);
+
+        // Trigger confetti ONLY for winning students (backend sends winner IDs)
         emitToSession(session.code, 'celebration', {
             type: 'confetti',
-            duration: 5000
+            duration: 10000,
+            winnerIds: winners.map((w: any) => w.user.toString())
         });
-
-        // Also emit points update for each winner so leaderboards refresh
-        for (const winner of winners) {
-            const updatedUser = await User.findById(winner.user);
-            if (updatedUser) {
-                emitToSession(session.code, 'points_updated', { userId: winner.user, points: updatedUser.points, name: updatedUser.name });
-            }
-        }
 
         res.status(200).json({
             success: true,
@@ -224,4 +227,5 @@ export const declarePollWinner = async (req: Request, res: Response): Promise<vo
         console.error('Declare winner error:', error);
         res.status(500).json({ success: false, message: 'Server error declaring winner' });
     }
-};
+}
+

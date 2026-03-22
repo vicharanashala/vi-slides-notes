@@ -363,6 +363,10 @@ class SocketService {
         if (this.socket) this.socket.on('poll_closed', callback);
     }
 
+    onPollWinnerDeclared(callback: (data: any) => void) {
+        if (this.socket) this.socket.on('poll_winner_declared', callback);
+    }
+
     // Remove listeners to prevent memory leaks
     offNewQuestion() { if (this.socket) this.socket.off('new_question'); }
     offUpdateQuestion() { if (this.socket) this.socket.off('update_question'); }
@@ -378,6 +382,7 @@ class SocketService {
             this.socket.off('new_poll');
             this.socket.off('poll_update');
             this.socket.off('poll_closed');
+            this.socket.off('poll_winner_declared');
         }
     }
 
@@ -394,6 +399,9 @@ class SocketService {
     onWhiteboardClear(callback: () => void) {
         if (this.socket) this.socket.on('whiteboard_clear', callback);
     }
+    onWhiteboardHistory(callback: (history: any[]) => void) {
+        if (this.socket) this.socket.on('whiteboard_history', callback);
+    }
 
     emitWhiteboardOpen(sessionCode: string) {
         if (this.socket) this.socket.emit('whiteboard_open', { sessionCode });
@@ -407,11 +415,23 @@ class SocketService {
     emitWhiteboardClear(sessionCode: string) {
         if (this.socket) this.socket.emit('whiteboard_clear', { sessionCode });
     }
+    emitWhiteboardHistoryRequest(sessionCode: string) {
+        if (this.socket) this.socket.emit('whiteboard_history_request', { sessionCode });
+    }
 
     offWhiteboardEvents() {
         if (this.socket) {
             this.socket.off('whiteboard_open');
             this.socket.off('whiteboard_close');
+            this.socket.off('whiteboard_draw');
+            this.socket.off('whiteboard_clear');
+            this.socket.off('whiteboard_history');
+        }
+    }
+
+    offWhiteboardDrawEvents() {
+        // Only remove draw and clear, not open/close (managed by parent)
+        if (this.socket) {
             this.socket.off('whiteboard_draw');
             this.socket.off('whiteboard_clear');
         }
@@ -464,6 +484,10 @@ class SocketService {
         if (this.socket) this.socket.on('points_updated', callback);
     }
 
+    onPulseCheckUpdate(callback: (data: any) => void) {
+        if (this.socket) this.socket.on('pulse_check_update', callback);
+    }
+
     // Celebration
     onCelebration(callback: (data: any) => void) {
         if (this.socket) this.socket.on('celebration', callback);
@@ -472,6 +496,7 @@ class SocketService {
     offPulseCheckEvents() {
         if (this.socket) {
             this.socket.off('pulse_check_start');
+            this.socket.off('pulse_check_update');
             this.socket.off('points_updated');
             this.socket.off('celebration');
         }

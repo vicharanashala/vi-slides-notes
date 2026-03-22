@@ -2532,7 +2532,7 @@ import EngagementControls from '../components/EngagementControls';
 import EngagementTeacherView from '../components/EngagementTeacherView';
 import Leaderboard from '../components/Leaderboard';
 import PrivateChat from '../components/PrivateChat';
-import Confetti from '../components/Confetti';
+import CelebrationModal from '../components/CelebrationModal';
 
 const SessionView: React.FC = () => {
     const { code } = useParams<{ code: string }>();
@@ -2553,7 +2553,9 @@ const SessionView: React.FC = () => {
     const [pulseCheckActive, setPulseCheckActive] = useState(false);
     const [pulseCheckClicked, setPulseCheckClicked] = useState(false);
     const [pulseCheckTimer, setPulseCheckTimer] = useState(10);
-    const [showConfetti, setShowConfetti] = useState(false);
+    const [pulseCheckResults, setPulseCheckResults] = useState<{ respondedCount: number; respondents: string[] } | null>(null);
+    const [pulseCheckPopup, setPulseCheckPopup] = useState(false);
+    const [celebrationOpen, setCelebrationOpen] = useState(false);
 
     // New State for 3-Column Layout
     const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
@@ -2721,10 +2723,13 @@ const SessionView: React.FC = () => {
                         }
                     });
 
-                    // Celebration / Confetti
+                    // Celebration / Confetti (only for students who got it right)
                     socketService.onCelebration((data: any) => {
-                        if (data.type === 'confetti') {
-                            setShowConfetti(true);
+                        if (data.type === 'confetti' && user?.role?.toLowerCase() === 'student') {
+                            // Check if current user is in winners list
+                            if (data.winnerIds && data.winnerIds.includes(user?.id)) {
+                                setCelebrationOpen(true);
+                            }
                         }
                     });
 
@@ -2745,6 +2750,39 @@ const SessionView: React.FC = () => {
                         // Also show a toast if it's the current user
                         if (data.userId === user?.id) {
                             setToast({ message: `🎉 You got points! Total: ${data.points}`, type: 'success' });
+                        }
+                    });
+
+                    // Pulse Check Results (show count of respondents)
+                    socketService.onPulseCheckUpdate?.((data: any) => {
+                        console.log('💓 Pulse check response:', data);
+                        setPulseCheckResults(prev => {
+                            const next = prev ? {
+                                respondedCount: data.respondedCount,
+                                respondents: [...prev.respondents, data.userName].slice(-10)
+                            } : {
+                                respondedCount: data.respondedCount,
+                                respondents: [data.userName]
+                            };
+                            return next;
+                        });
+
+                        // show popup to teacher for pulse check updates
+                        if (isTeacher) {
+                            setPulseCheckPopup(true);
+                            setTimeout(() => setPulseCheckPopup(false), 4500);
+                        }
+                    });
+
+                    // Listen for poll winner declared to show status updates
+                    socketService.onPollWinnerDeclared((data: any) => {
+                        setToast({
+                            message: `✅ Correct answer selected: ${data.winningOptionText} (${data.winnerCount} students).`,
+                            type: 'success'
+                        });
+
+                        if (activePoll && activePoll._id === data.pollId) {
+                            setActivePoll(prev => prev ? { ...prev, isActive: false, correctOptionIndex: data.winningOptionIndex } : prev);
                         }
                     });
                 }
@@ -3169,13 +3207,53 @@ const SessionView: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleLeaveSession} className="btn btn-secondary">
-                            Leave
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            {!showWhiteboard && (
+                                <button
+                                    onClick={() => setShowWhiteboard(true)}
+                                    className="btn btn-secondary"
+                                    style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--color-primary-light)', borderColor: 'rgba(99, 102, 241, 0.2)', fontSize: '0.9rem' }}
+                                    title="View teacher's whiteboard"
+                                >
+                                    📋 View Whiteboard
+                                </button>
+                            )}
+                            <button onClick={handleLeaveSession} className="btn btn-secondary">
+                                Leave
+                            </button>
+                        </div>
                     )}
                 </div>
             </nav >
             {error && <div className="container" style={{ marginTop: '1rem' }}><div className="alert alert-error">{error}</div></div>}
+
+            {pulseCheckPopup && pulseCheckResults && (
+                <div style={{
+                    position: 'fixed',
+                    top: '90px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 1200,
+                    background: 'rgba(31, 41, 55, 0.95)',
+                    color: 'white',
+                    border: '1px solid rgba(156, 163, 175, 0.75)',
+                    padding: '0.8rem 1rem',
+                    borderRadius: '0.65rem',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+                    minWidth: '260px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <div>
+                        <strong>💓 Pulse Check</strong>
+                        <div style={{ fontSize: '0.9rem', marginTop: '0.2rem' }}>
+                            {pulseCheckResults.respondedCount} of {session?.students.length || 0} responded
+                        </div>
+                    </div>
+                    <button onClick={() => setPulseCheckPopup(false)} style={{ marginLeft: '0.75rem', color: '#f59e0b', border: 'none', background: 'none', cursor: 'pointer' }}>✕</button>
+                </div>
+            )}
 
             {showWhiteboard && (
                 <Whiteboard
@@ -3475,6 +3553,29 @@ const SessionView: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Pulse Check Results (Teacher Only) */}
+                        {isTeacher && pulseCheckResults && (
+                            <div className="glass-card" style={{ marginBottom: '1.5rem', background: 'rgba(245, 158, 11, 0.05)', borderLeft: '3px solid rgba(245, 158, 11, 0.5)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    <span style={{ fontSize: '1.2rem' }}>💓</span>
+                                    <h4 style={{ margin: 0 }}>Pulse Check Results</h4>
+                                </div>
+                                <div style={{ fontSize: '0.95rem' }}>
+                                    <p style={{ margin: '0.5rem 0', color: 'var(--color-warning)' }}>
+                                        <strong>{pulseCheckResults.respondedCount}</strong> of <strong>{session.students.length}</strong> participant{session.students.length !== 1 ? 's' : ''} responded
+                                    </p>
+                                    {pulseCheckResults.respondents.length > 0 && (
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+                                            <p style={{ margin: '0 0 0.3rem 0', fontWeight: 500 }}>Latest Responses:</p>
+                                            {pulseCheckResults.respondents.slice(-5).map((name: string, idx: number) => (
+                                                <p key={idx} style={{ margin: '0.2rem 0', paddingLeft: '0.5rem' }}>✓ {name}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <Leaderboard students={session.students} />
 
                         <div className="glass-card" style={{ padding: '1rem', marginTop: '1.5rem' }}>
@@ -3687,14 +3788,13 @@ const SessionView: React.FC = () => {
             }
 
 
-            {
-                showConfetti && (
-                    <Confetti
-                        duration={5000}
-                        onComplete={() => setShowConfetti(false)}
-                    />
-                )
-            }
+            {/* Celebration Modal with Confetti */}
+            <CelebrationModal
+                isOpen={celebrationOpen}
+                duration={10000}
+                onClose={() => setCelebrationOpen(false)}
+            />
+
             {/* QR Code Modal for Session View */}
             {showQRModal && session && (
                 <div className="modal-overlay fade-in" style={{

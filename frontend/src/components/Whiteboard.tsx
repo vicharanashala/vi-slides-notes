@@ -47,13 +47,24 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ sessionCode, isTeacher, onClose
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         });
 
-        socketService.onWhiteboardClose(() => {
-            if (!isTeacher) onClose();
+        socketService.onWhiteboardHistory((history) => {
+            // Reapply existing strokes when joining/reopening whiteboard
+            if (!history || history.length === 0) return;
+            // clear before replaying existing points
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            history.forEach((data: any) => {
+                drawOnCanvas(data.x0, data.y0, data.x1, data.y1, data.color, data.size, false);
+            });
         });
+
+        // Request a history snapshot in case user opened after the teacher has drawn
+        socketService.emitWhiteboardHistoryRequest(sessionCode);
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            socketService.offWhiteboardEvents();
+            // Only remove draw/clear listeners, NOT open/close (managed by parent SessionView)
+            socketService.offWhiteboardDrawEvents();
         };
     }, []);
 
