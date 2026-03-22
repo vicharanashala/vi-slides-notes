@@ -2,28 +2,20 @@ import { Request, Response } from "express";
 import assignmentModel from "../models/assignment.model";
 import { AuthRequest } from "../middleware/auth.middleware";
 
-// ------------------- CREATE ASSIGNMENT -------------------
+// ------------------- CREATE -------------------
 export const createAssignment = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { title, description } = req.body;
-
-    const instructorId = req.user?._id;
-
-    // Role check
-    if (req.user.role !== "Instructor") {
-      res.status(403).json({
-        message: "Only instructors can create assignments",
-      });
-      return;
-    }
+    const { title, description, dueDate, maxMarks } = req.body;
 
     const assignment = await assignmentModel.create({
       title,
       description,
-      instructor: instructorId,
+      dueDate,
+      maxMarks,
+      createdBy: req.user?._id,
     });
 
     res.status(201).json({
@@ -35,7 +27,7 @@ export const createAssignment = async (
   }
 };
 
-// ------------------- GET ALL ASSIGNMENTS -------------------
+// ------------------- GET ALL -------------------
 export const getAssignments = async (
   _req: Request,
   res: Response
@@ -43,7 +35,8 @@ export const getAssignments = async (
   try {
     const assignments = await assignmentModel
       .find()
-      .populate("instructor", "fullname email");
+      .populate("createdBy", "fullname email")
+      .populate("submissions.student", "fullname email");
 
     res.status(200).json({ assignments });
   } catch (err) {
@@ -51,61 +44,38 @@ export const getAssignments = async (
   }
 };
 
-// ------------------- DELETE ASSIGNMENT -------------------
-export const deleteAssignment = async (
-  req: AuthRequest,
+// ------------------- GET ONE (optional but useful) -------------------
+export const getSingleAssignment = async (
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // Role check
-    if (req.user.role !== "Instructor") {
-      res.status(403).json({
-        message: "Only instructors can delete assignments",
-      });
-      return;
-    }
-
-    const assignment = await assignmentModel.findById(id);
+    const assignment = await assignmentModel
+      .findById(id)
+      .populate("createdBy", "fullname email")
+      .populate("submissions.student", "fullname email");
 
     if (!assignment) {
       res.status(404).json({ message: "Assignment not found" });
       return;
     }
 
-    // Ownership check
-    if (assignment.instructor.toString() !== req.user?._id.toString()) {
-      res.status(403).json({ message: "Not allowed" });
-      return;
-    }
-
-    await assignment.deleteOne();
-
-    res.status(200).json({
-      message: "Assignment deleted successfully",
-    });
+    res.status(200).json({ assignment });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ------------------- UPDATE ASSIGNMENT -------------------
+// ------------------- UPDATE -------------------
 export const updateAssignment = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, description } = req.body;
-
-    // Role check
-    if (req.user.role !== "Instructor") {
-      res.status(403).json({
-        message: "Only instructors can update assignments",
-      });
-      return;
-    }
+    const { title, description, dueDate, maxMarks } = req.body;
 
     const assignment = await assignmentModel.findById(id);
 
@@ -114,20 +84,81 @@ export const updateAssignment = async (
       return;
     }
 
-    // Ownership check
-    if (assignment.instructor.toString() !== req.user?._id.toString()) {
-      res.status(403).json({ message: "Not allowed" });
-      return;
-    }
-
-    // Update fields
     if (title) assignment.title = title;
     if (description) assignment.description = description;
+    if (dueDate) assignment.dueDate = dueDate;
+    if (maxMarks !== undefined) assignment.maxMarks = maxMarks;
 
     await assignment.save();
 
     res.status(200).json({
-      message: "Assignment updated successfully",
+      message: "Assignment updated",
+      assignment,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------- DELETE -------------------
+export const deleteAssignment = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const assignment = await assignmentModel.findByIdAndDelete(id);
+
+    if (!assignment) {
+      res.status(404).json({ message: "Assignment not found" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Assignment deleted",
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------- SUBMIT -------------------
+export const submitAssignment = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { fileUrl } = req.body;
+
+    const assignment = await assignmentModel.findById(id);
+
+    if (!assignment) {
+      res.status(404).json({ message: "Assignment not found" });
+      return;
+    }
+
+    // prevent duplicate submission
+    const alreadySubmitted = assignment.submissions.find(
+      (s) => s.student.toString() === req.user?._id.toString()
+    );
+
+    if (alreadySubmitted) {
+      res.status(400).json({ message: "Already submitted" });
+      return;
+    }
+
+    assignment.submissions.push({
+      student: req.user?._id,
+      fileUrl,
+      submittedAt: new Date(),
+    });
+
+    await assignment.save();
+
+    res.status(200).json({
+      message: "Assignment submitted successfully",
       assignment,
     });
   } catch (err) {

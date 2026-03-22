@@ -3,22 +3,30 @@ import authMiddleware from "../middleware/auth.middleware";
 import {
   createAssignment,
   getAssignments,
-  deleteAssignment,
+  getSingleAssignment,
   updateAssignment,
+  deleteAssignment,
+  submitAssignment,
 } from "../controllers/assignment.controller";
 
 const router = Router();
 
-// Create (Protected)
+// CREATE
 router.post("/", authMiddleware, createAssignment);
 
-// Get all
+// GET ALL
 router.get("/", getAssignments);
 
-// Delete (Protected)
+// GET ONE
+router.get("/:id", getSingleAssignment);
+
+// UPDATE
+router.put("/:id", authMiddleware, updateAssignment);
+
+// DELETE
 router.delete("/:id", authMiddleware, deleteAssignment);
 
-// Update (Protected)
-router.put("/:id", authMiddleware, updateAssignment);
+// SUBMIT
+router.post("/:id/submit", authMiddleware, submitAssignment);
 
 export default router;
