@@ -11,6 +11,8 @@ const PollCreator: React.FC<PollCreatorProps> = ({ sessionId, onPollCreated }) =
     const [options, setOptions] = useState(['', '']);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [timerEnabled, setTimerEnabled] = useState(false);
+    const [timerDuration, setTimerDuration] = useState(30);
 
     const handleAddOption = () => {
         if (options.length < 5) {
@@ -46,18 +48,27 @@ const PollCreator: React.FC<PollCreatorProps> = ({ sessionId, onPollCreated }) =
             return;
         }
 
+        if (timerEnabled && (!timerDuration || timerDuration <= 0)) {
+            setError('Please enter a valid timer duration');
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await pollService.createPoll({
                 question,
                 type: 'mcq',
                 options: filteredOptions,
-                sessionId
+                sessionId,
+                timerEnabled,
+                timerDuration
             });
 
             if (response.success) {
                 setQuestion('');
                 setOptions(['', '']);
+                setTimerEnabled(false);
+                setTimerDuration(30);
                 onPollCreated(response.data);
             }
         } catch (err: any) {
@@ -120,6 +131,36 @@ const PollCreator: React.FC<PollCreatorProps> = ({ sessionId, onPollCreated }) =
                         </button>
                     )}
                 </div>
+
+                <div className="form-group mb-3">
+                    <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                            type="checkbox"
+                            checked={timerEnabled}
+                            onChange={(e) => setTimerEnabled(e.target.checked)}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        <span>⏱️ Enable Timer</span>
+                    </label>
+                </div>
+
+                {timerEnabled && (
+                    <div className="form-group mb-3">
+                        <label className="form-label" style={{ fontSize: '0.85rem' }}>Timer Duration (seconds)</label>
+                        <input
+                            type="number"
+                            className="form-input"
+                            min="5"
+                            max="300"
+                            step="5"
+                            value={timerDuration}
+                            onChange={(e) => setTimerDuration(parseInt(e.target.value) || 30)}
+                        />
+                        <small style={{ color: 'var(--color-text-muted)', display: 'block', marginTop: '0.25rem' }}>
+                            Students' timer will stop when they submit an answer
+                        </small>
+                    </div>
+                )}
 
                 {error && <div className="alert alert-error" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>{error}</div>}
 

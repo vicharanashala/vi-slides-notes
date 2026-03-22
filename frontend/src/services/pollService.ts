@@ -11,6 +11,9 @@ export interface Poll {
     session: string;
     isActive: boolean;
     resultsVisible: boolean;
+    timerEnabled: boolean;
+    timerDuration: number;
+    timerStartedAt?: string;
     createdAt: string;
 }
 
@@ -19,6 +22,8 @@ export interface CreatePollData {
     type: 'mcq' | 'boolean';
     options: string[];
     sessionId: string;
+    timerEnabled?: boolean;
+    timerDuration?: number;
 }
 
 export const pollService = {
