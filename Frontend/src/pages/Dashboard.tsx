@@ -1,16 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
+import StudentDashboard from "@/components/student-dashboard";
 
 export default function Dashboard() {
   const { user } = useAuth();
 
-  return (
-    <div>
-      <h1>Welcome, {user?.fullname}</h1>
-      {user?.role === "Instructor" ? (
-        <p>You are logged in as an Instructor</p>
-      ) : (
-        <p>You are logged in as a Student</p>
-      )}
+  if (!user) {
+    return <h1>Please log in to view your dashboard</h1>;
+  }
+
+   return (
+    <div className="p-6">
+      <StudentDashboard />
     </div>
   );
 }
