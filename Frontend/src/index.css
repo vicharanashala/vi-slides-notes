@@ -246,3 +246,31 @@
 .input-glass:focus {
   @apply ring-2 ring-primary/50;
 }
+
+/* ── Glassmorphic DropdownMenuContent ───────────────────────────────────── */
+@layer components {
+  [data-radix-popper-content-wrapper] [role="menu"] {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  }
+
+  .dark [data-radix-popper-content-wrapper] [role="menu"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+
+  /* Menu items hover */
+  [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
+  [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+    background: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .dark [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
+  .dark [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+}
