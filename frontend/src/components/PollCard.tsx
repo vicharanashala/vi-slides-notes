@@ -10,12 +10,41 @@ interface PollCardProps {
 const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
     const [voted, setVoted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+    const [timerActive, setTimerActive] = useState(false);
 
     // Track if user has voted locally for this poll ID
     useEffect(() => {
         const hasVoted = localStorage.getItem(`voted_poll_${poll._id}`);
         if (hasVoted) setVoted(true);
     }, [poll._id]);
+
+    // Initialize and manage timer
+    useEffect(() => {
+        if (!poll.timerEnabled || !poll.isActive || voted) {
+            setTimeRemaining(null);
+            setTimerActive(false);
+            return;
+        }
+
+        if (!poll.timerStartedAt) return;
+
+        const startTime = new Date(poll.timerStartedAt).getTime();
+        const durationMs = (poll.timerDuration || 0) * 1000;
+        
+        const updateTimer = () => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const remaining = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
+            setTimeRemaining(remaining);
+            setTimerActive(remaining > 0);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 100);
+
+        return () => clearInterval(interval);
+    }, [poll.timerEnabled, poll.timerDuration, poll.timerStartedAt, poll.isActive, voted]);
 
     const handleVote = async (index: number) => {
         if (voted || !poll.isActive) return;
@@ -26,6 +55,8 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
             if (response.success) {
                 setVoted(true);
                 localStorage.setItem(`voted_poll_${poll._id}`, 'true');
+                setTimeRemaining(null);
+                setTimerActive(false);
             }
         } catch (err) {
             console.error('Vote error:', err);
@@ -51,6 +82,10 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
 
     const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
 
+    // Calculate timer percentage for visual indicator
+    const timerPercentage = poll.timerDuration ? ((timeRemaining || 0) / poll.timerDuration) * 100 : 0;
+    const timerColor = timeRemaining! <= 5 ? '#ef4444' : timerPercentage > 50 ? '#10b981' : '#f59e0b';
+
     return (
         <div className="glass-card anim-slide-up" style={{
             padding: '1.5rem',
@@ -66,16 +101,35 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
                     </span>
                     {!poll.isActive && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>• Final Results</span>}
                 </div>
-                {isTeacher && poll.isActive && (
-                    <button
-                        onClick={handleClose}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem', color: '#ef4444' }}
-                        disabled={loading}
-                    >
-                        End Poll
-                    </button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {poll.timerEnabled && poll.isActive && timeRemaining !== null && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.4rem 0.8rem',
+                            background: `rgba(255, 107, 107, 0.1)`,
+                            border: `2px solid ${timerColor}`,
+                            borderRadius: '8px',
+                            animation: timeRemaining! <= 5 ? 'pulse 1s infinite' : 'none'
+                        }}>
+                            <span style={{ fontSize: '1.2rem' }}>⏱️</span>
+                            <span style={{ fontWeight: 'bold', color: timerColor, minWidth: '30px', textAlign: 'right' }}>
+                                {timeRemaining}s
+                            </span>
+                        </div>
+                    )}
+                    {isTeacher && poll.isActive && (
+                        <button
+                            onClick={handleClose}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem', color: '#ef4444' }}
+                            disabled={loading}
+                        >
+                            End Poll
+                        </button>
+                    )}
+                </div>
             </div>
 
             <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>{poll.question}</h3>
@@ -97,9 +151,10 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
                                         padding: '0.75rem 1rem',
                                         background: 'rgba(255,255,255,0.03)'
                                     }}
-                                    disabled={loading}
+                                    disabled={loading || (poll.timerEnabled && !timerActive)}
                                 >
                                     {option.text}
+                                    {poll.timerEnabled && !timerActive && <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#ef4444' }}>Time's up!</span>}
                                 </button>
                             ) : (
                                 <div style={{
@@ -158,6 +213,13 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
             <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
                 Total responses: {totalVotes}
             </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+            `}</style>
         </div>
     );
 };
