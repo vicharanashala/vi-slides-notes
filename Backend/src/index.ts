@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import assignmentRouter from "./routes/assignment.route";
 
 import connectDB from "./config/db";
 import authRouter from "./routes/auth.route";
@@ -41,6 +42,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRouter);
+app.use("/api/assignments", assignmentRouter);
 
 // Health check 
 app.get("/", (req: Request, res: Response) => {
