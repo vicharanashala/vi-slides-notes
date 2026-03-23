@@ -5,6 +5,9 @@ import { ThemeProvider } from "next-themes";
 import Dashboard from "./pages/Dashboard";
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Assignment from "./pages/Assignment";
+import AssignmentDetail from "./pages/AssignmentDetail";
+
 function App() {
   return (
     <ThemeProvider
@@ -32,12 +35,27 @@ function App() {
               </PublicRoute>
             }
           />
-
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignment"
+            element={
+              <ProtectedRoute>
+                <Assignment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignment/:id"
+            element={
+              <ProtectedRoute>
+                <AssignmentDetail />
               </ProtectedRoute>
             }
           />
