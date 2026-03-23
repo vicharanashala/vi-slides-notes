@@ -90,8 +90,11 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = () => {
+        const confirmLogout = window.confirm('Are you sure you want to logout?');
+        if(confirmLogout){
         logout();
         navigate('/login');
+        }
     };
 
     const handleCreateSession = async (e: React.FormEvent) => {
