@@ -9,11 +9,5 @@ export default function Dashboard() {
     return <TeacherDashboard />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Spacer to reserve space for header (height matches header you would have had) */}
-      <div className="h-24 md:h-28" />
-      
-    </div>
-  );
+  
 }
