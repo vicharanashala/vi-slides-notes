@@ -1,16 +1,19 @@
 import { useAuth } from "@/context/AuthContext";
+import TeacherDashboard from "@/components/teacher-dashboard";
+
 
 export default function Dashboard() {
   const { user } = useAuth();
 
+  if (user?.role === "Instructor") {
+    return <TeacherDashboard />;
+  }
+
   return (
-    <div>
-      <h1>Welcome, {user?.fullname}</h1>
-      {user?.role === "Instructor" ? (
-        <p>You are logged in as an Instructor</p>
-      ) : (
-        <p>You are logged in as a Student</p>
-      )}
+    <div className="min-h-screen bg-background">
+      {/* Spacer to reserve space for header (height matches header you would have had) */}
+      <div className="h-24 md:h-28" />
+      
     </div>
   );
 }

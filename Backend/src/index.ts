@@ -1,8 +1,20 @@
+// this is for secure mongodb connection for people using mobile hotspot
+// it will use google dns servers instead of the default ones which may not work properly with mobile hotspots
+import dns from 'dns';
+import dotenv from "dotenv";
+import path from 'path';
+
+
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+
+
+
 import express, { Application, Request, Response } from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
-
 import connectDB from "./config/db";
 import authRouter from "./routes/auth.route";
 
