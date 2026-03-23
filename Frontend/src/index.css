@@ -67,9 +67,12 @@
     --accent: oklch(0.85 0.18 330);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(1 0 0 / 30%);
-    --input: oklch(1 0 0 / 40%);
-    --ring: oklch(0.708 0 0);
+
+    /* solid visible border & input bg for light mode */
+    --border: oklch(0.80 0.02 260);
+    --input: oklch(0.97 0.01 260);
+    --ring: oklch(0.62 0.22 264);
+
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -82,8 +85,8 @@
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.95 0.02 250);
     --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(1 0 0 / 30%);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-border: oklch(0.80 0.02 260);
+    --sidebar-ring: oklch(0.62 0.22 264);
 }
 
 .dark {
@@ -105,9 +108,12 @@
     --accent: oklch(0.75 0.2 330);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
+
+    /* Dark mode keeps translucent glass borders — they work fine on dark bg */
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
+
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -124,153 +130,200 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(circle at 20% 20%, rgba(99,102,241,0.25), transparent 40%),
-      radial-gradient(circle at 80% 30%, rgba(236,72,153,0.25), transparent 40%),
-      radial-gradient(circle at 50% 80%, rgba(34,211,238,0.25), transparent 40%);
-    background-attachment: fixed;
-  }
-  html {
-    @apply font-sans;
-  }
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        background-image:
+            radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25), transparent 40%),
+            radial-gradient(circle at 80% 30%, rgba(236, 72, 153, 0.25), transparent 40%),
+            radial-gradient(circle at 50% 80%, rgba(34, 211, 238, 0.25), transparent 40%);
+        background-attachment: fixed;
+    }
+
+    html {
+        @apply font-sans;
+    }
+
+    /* Fix: force all shadcn/native inputs to be visible in light mode */
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    textarea,
+    select {
+        background-color: oklch(1 0 0 / 75%) !important;
+        border: 1.5px solid oklch(0.78 0.02 260) !important;
+        color: oklch(0.145 0 0) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+    textarea:focus,
+    select:focus {
+        border-color: oklch(0.62 0.22 264) !important;
+        box-shadow: 0 0 0 3px oklch(0.62 0.22 264 / 20%) !important;
+        outline: none !important;
+    }
+
+    /* ✅ Dark mode inputs — restore glass look */
+    .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    .dark textarea,
+    .dark select {
+        background-color: oklch(1 0 0 / 8%) !important;
+        border: 1px solid oklch(1 0 0 / 15%) !important;
+        color: oklch(0.985 0 0) !important;
+    }
+
+    .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+    .dark textarea:focus,
+    .dark select:focus {
+        border-color: oklch(0.75 0.2 264) !important;
+        box-shadow: 0 0 0 3px oklch(0.75 0.2 264 / 25%) !important;
+    }
+
+    /* Placeholder color fix for both modes */
+    input::placeholder,
+    textarea::placeholder {
+        color: oklch(0.60 0.01 260) !important;
+        opacity: 1;
+    }
+
+    .dark input::placeholder,
+    .dark textarea::placeholder {
+        color: oklch(0.65 0.01 260) !important;
+        opacity: 1;
+    }
 }
 
 /* ── Glassmorphic shadcn Button override ─────────────────────────────────── */
 @layer components {
-  /* Default variant — glass panel */
-  .inline-flex.bg-primary {
-    background: rgba(255, 255, 255, 0.12) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    color: var(--foreground) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255,255,255,0.3) !important;
-    transition: all 0.3s ease !important;
-  }
+    /* Default variant — glass panel */
+    .inline-flex.bg-primary {
+        background: rgba(255, 255, 255, 0.12) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        color: var(--foreground) !important;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+        transition: all 0.3s ease !important;
+    }
 
-  .inline-flex.bg-primary:hover {
-    background: rgba(255, 255, 255, 0.22) !important;
-    transform: scale(1.04);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.4) !important;
-  }
+    .inline-flex.bg-primary:hover {
+        background: rgba(255, 255, 255, 0.22) !important;
+        transform: scale(1.04);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    }
 
-  .dark .inline-flex.bg-primary {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: var(--foreground) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-  }
+    .dark .inline-flex.bg-primary {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: var(--foreground) !important;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    }
 
-  .dark .inline-flex.bg-primary:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.15) !important;
-  }
+    .dark .inline-flex.bg-primary:hover {
+        background: rgba(255, 255, 255, 0.14) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    }
+
+    /* ── Glassmorphic DropdownMenuContent ───────────────────────────────── */
+    [data-radix-popper-content-wrapper] [role="menu"] {
+        background: rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .dark [data-radix-popper-content-wrapper] [role="menu"] {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+
+    [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
+    [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .dark [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
+    .dark [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+        background: rgba(255, 255, 255, 0.12) !important;
+    }
 }
 
 /* ── Custom utility classes ──────────────────────────────────────────────── */
 .card-glass {
-  @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-xl rounded-2xl p-6 transition-all duration-300;
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-xl rounded-2xl p-6 transition-all duration-300;
 }
 
 .dark .card-glass {
-  @apply bg-white/5 border-white/10;
+    @apply bg-white/5 border-white/10;
 }
 
 .card-glass:hover {
-  @apply shadow-2xl scale-[1.02];
+    @apply shadow-2xl scale-[1.02];
 }
 
 .btn-glass {
-  @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-xl px-6 py-2 rounded-xl font-medium transition-all duration-300;
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-xl px-6 py-2 rounded-xl font-medium transition-all duration-300;
 }
 
 .dark .btn-glass {
-  @apply bg-white/5 border-white/10;
+    @apply bg-white/5 border-white/10;
 }
 
 .btn-glass:hover {
-  @apply bg-white/20 scale-105;
+    @apply bg-white/20 scale-105;
 }
 
 .btn-gradient {
-  @apply px-6 py-2 rounded-xl text-white font-semibold transition-all duration-300;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
+    @apply px-6 py-2 rounded-xl text-white font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
 }
 
 .btn-gradient:hover {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+    transform: scale(1.05);
+    filter: brightness(1.1);
 }
 
 .heading-gradient {
-  background: linear-gradient(135deg, #6366f1, #ec4899, #22d3ee);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+    background: linear-gradient(135deg, #6366f1, #ec4899, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .heading-xl {
-  @apply text-4xl md:text-5xl font-bold tracking-tight;
+    @apply text-4xl md:text-5xl font-bold tracking-tight;
 }
 
 .heading-lg {
-  @apply text-2xl md:text-3xl font-semibold;
+    @apply text-2xl md:text-3xl font-semibold;
 }
 
 .text-soft {
-  @apply text-muted-foreground leading-relaxed;
+    @apply text-muted-foreground leading-relaxed;
 }
 
 .text-glow {
-  text-shadow: 0 0 20px rgba(99,102,241,0.5);
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
 }
 
 .text-gradient {
-  background: linear-gradient(90deg, #6366f1, #22d3ee);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+    background: linear-gradient(90deg, #6366f1, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .input-glass {
-  @apply backdrop-blur-xl bg-white/10 border border-white/20 px-4 py-2 rounded-lg outline-none;
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 px-4 py-2 rounded-lg outline-none;
 }
 
 .dark .input-glass {
-  @apply bg-white/5 border-white/10;
+    @apply bg-white/5 border-white/10;
 }
 
 .input-glass:focus {
-  @apply ring-2 ring-primary/50;
-}
-
-/* ── Glassmorphic DropdownMenuContent ───────────────────────────────────── */
-@layer components {
-  [data-radix-popper-content-wrapper] [role="menu"] {
-    background: rgba(255, 255, 255, 0.15) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.3) !important;
-  }
-
-  .dark [data-radix-popper-content-wrapper] [role="menu"] {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08) !important;
-  }
-
-  /* Menu items hover */
-  [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
-  [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
-    background: rgba(255, 255, 255, 0.2) !important;
-  }
-
-  .dark [data-radix-popper-content-wrapper] [role="menuitem"]:hover,
-  .dark [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
-    background: rgba(255, 255, 255, 0.12) !important;
-  }
+    @apply ring-2 ring-primary/50;
 }
