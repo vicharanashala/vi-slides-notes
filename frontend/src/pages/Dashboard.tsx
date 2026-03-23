@@ -29,6 +29,8 @@ const Dashboard: React.FC = () => {
     const [activeSession, setActiveSession] = useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
     useEffect(() => {
         const fetchActiveSession = async () => {
             try {
@@ -90,11 +92,12 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = () => {
-        const confirmLogout = window.confirm('Are you sure you want to logout?');
-        if(confirmLogout){
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = () => {
         logout();
         navigate('/login');
-        }
     };
 
     const handleCreateSession = async (e: React.FormEvent) => {
@@ -460,6 +463,46 @@ const Dashboard: React.FC = () => {
             )}
 
             {/* Certificates Section for Students */}
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div className='modal-overlay fade-in' style={{
+                    position:'fixed',
+                    top:0,left:0,right:0,bottom:0,
+                    background:'rgba(0,0,0,0.7)',
+                    display:'flex', justifyContent:'center', alignItems:'center',
+                    zIndex:2000
+                }}>
+                    <div className="glass-card" style={{
+                        padding:'2rem',
+                        borderRadius: '12px',
+                        textAlign:'center',
+                        maxWidth:'400px',
+                        width:'90%'
+                    }}>
+                        <h3 style={{ marginBottom: '1rem' }}>Confirm Logout</h3>
+                        <p style={{ marginBottom: '1.5rem' }}>
+                            Are you sure you want to logout?
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button
+                                className="btn"
+                                onClick={() => setShowLogoutConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="btn"
+                                style={{ background: '#ef4444', color: 'white' }}
+                                onClick={confirmLogout}
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div> )}
 
         </div >
     );
