@@ -153,31 +153,66 @@ const updateUserController = async (
       return;
     }
 
-    const { fullname, email, password, role } = req.body;
+    const { fullname, oldPassword, newPassword } = req.body;
 
-    const updateData: Record<string, any> = {};
+    const user = await userModel.findById(userId);
 
-    if (fullname) updateData.fullname = fullname;
-    if (email) updateData.email = email;
-    if (role) updateData.role = role;
-
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateData.password = hashedPassword;
-    }
-
-    const updatedUser = await userModel
-      .findByIdAndUpdate(
-        userId,
-        { $set: updateData },
-        { new: true, runValidators: true }
-      )
-      .select("-password");
-
-    if (!updatedUser) {
+    if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
     }
+
+    const updateData: Record<string, any> = {};
+
+    if (fullname) {
+      if (fullname.trim().length < 2) {
+        res.status(400).json({ message: "Fullname too short" });
+        return;
+      }
+      updateData.fullname = fullname.trim();
+    }
+
+    if (oldPassword || newPassword) {
+      if (!oldPassword || !newPassword) {
+        res.status(400).json({
+          message: "Both oldPassword and newPassword are required",
+        });
+        return;
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        res.status(400).json({ message: "Old password is incorrect" });
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        res.status(400).json({
+          message: "New password must be at least 6 characters long",
+        });
+        return;
+      }
+
+      const isSame = await bcrypt.compare(newPassword, user.password);
+      if (isSame) {
+        res.status(400).json({
+          message: "New password cannot be the same as old password",
+        });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      updateData.password = hashedPassword;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ message: "Nothing to update" });
+      return;
+    }
+
+    const updatedUser = await userModel
+      .findByIdAndUpdate(userId, { $set: updateData }, { new: true })
+      .select("-password");
 
     res.status(200).json({
       message: "Profile updated successfully",
@@ -185,13 +220,6 @@ const updateUserController = async (
     });
   } catch (err: any) {
     console.error("Update user error:", err);
-
-    if (err.code === 11000) {
-      const field = Object.keys(err.keyPattern)[0];
-      res.status(400).json({ message: `${field} is already in use` });
-      return;
-    }
-
     res.status(500).json({ message: "Server error" });
   }
 };
