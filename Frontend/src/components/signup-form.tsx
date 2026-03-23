@@ -143,7 +143,7 @@ export default function SignupForm() {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="instructor">
+                  <SelectItem value="Instructor">
                     <User size={16} />
                     Instructor
                   </SelectItem>
