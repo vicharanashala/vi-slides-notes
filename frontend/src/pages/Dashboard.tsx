@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
     const [showQRModal, setShowQRModal] = useState(false);
     const [activeSession, setActiveSession] = useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
+    const [sessionStatus, setSessionStatus] = useState("inactive");
     useEffect(() => {
         const fetchActiveSession = async () => {
             try {
@@ -124,8 +124,20 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const handleStart = () => {
+    setSessionStatus("active");
+    setToast({ message: "Session Started", type: "success" });
+    };
 
+const handlePause = () => {
+    setSessionStatus("paused");
+    setToast({ message: "Session Paused", type: "info" });
+    };
 
+const handleEnd = () => {
+    setSessionStatus("ended");
+    setToast({ message: "Session Ended", type: "error" });
+        };
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
@@ -299,6 +311,40 @@ const Dashboard: React.FC = () => {
                                 <button onClick={() => navigate('/assignments')} className="btn btn-primary mt-2">Manage Assignments</button>
                             </div>
 
+                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 165, 0, 0) 100%)' }}>
+    <h3>Session Control</h3>
+    <p className="text-muted mt-1">Manage your session status.</p>
+
+    <p style={{ marginTop: "1rem" }}>
+        <strong>Status:</strong> {sessionStatus}
+    </p>
+
+    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+        <button 
+            onClick={handleStart} 
+            className="btn btn-primary"
+            disabled={sessionStatus === "active"}
+        >
+            Start
+        </button>
+
+        <button 
+            onClick={handlePause} 
+            className="btn"
+            disabled={sessionStatus !== "active"}
+        >
+            Pause
+        </button>
+
+        <button 
+            onClick={handleEnd} 
+            className="btn"
+            disabled={sessionStatus === "ended"}
+        >
+            End
+        </button>
+    </div>
+</div>
                         </>
                     ) : (
                         <>
