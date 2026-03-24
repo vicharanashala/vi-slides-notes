@@ -1,39 +1,48 @@
 import { CertificatesCard, AssignmentsCard, JoinSessionCard } from "./student-card";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
 
-  const cardClass = "rounded-2xl bg-black/40 border border-[#24273b] backdrop-blur-md";
-
   return (
-    <div className="py-12 px-8 max-w-7xl mx-auto">
+    <div className="flex flex-col min-h-dvh px-4 py-12">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-8">
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">
-          Student Dashboard
-        </h1>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gradient">
+              Student Dashboard
+            </h1>
+            <p className="mt-2 text-base text-muted-foreground">
+              Here's a quick overview of your activity.
+            </p>
+          </div>
+          <NotificationBell />
+        </div>
 
-        <NotificationBell />
-      </div>
-      
-      <div className={`${cardClass} mb-10 px-10 py-10 shadow-lg`}>
-        <h1 className="text-4xl md:text-5xl font-bold mb-2 text-gradient">
-          Welcome, {user?.fullname}
-        </h1>
-        <p className="text-lg text-gray-300">
-          Join a session to start asking questions!
-        </p>
-      </div>
+        {/* Welcome card */}
+        <Card className="shadow-xl">
+          <CardContent className="p-10">
+            <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-1">
+              Welcome, {user?.fullname}
+            </h2>
+            <p className="text-base text-muted-foreground">
+              Join a session to start asking questions!
+            </p>
+          </CardContent>
+        </Card>
 
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <JoinSessionCard />
-        <AssignmentsCard />
-        <CertificatesCard />
+        {/* Action cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <JoinSessionCard />
+          <AssignmentsCard />
+          <CertificatesCard />
+        </div>
+
       </div>
     </div>
   );
 }
-
