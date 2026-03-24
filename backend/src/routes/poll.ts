@@ -1,21 +1,25 @@
-import express from 'express';
-import {
-    createPoll,
-    votePoll,
-    closePoll,
-    getActivePoll,
-    declarePollWinner
-} from '../controllers/pollController';
-import { protect } from '../middleware/auth';
+import express from "express";
+import Poll from "../models/Poll";
 
 const router = express.Router();
 
-router.use(protect);
+// ✅ GET POLLS FOR A SESSION
+router.get("/session/:id", async (req, res) => {
+  try {
+    const polls = await Poll.find({ session: req.params.id })
+      .sort({ createdAt: -1 });
 
-router.post('/', createPoll);
-router.get('/session/:sessionId', getActivePoll);
-router.patch('/:id/vote', votePoll);
-router.patch('/:id/close', closePoll);
-router.patch('/:id/declare-winner', declarePollWinner);
+    res.status(200).json({
+      success: true,
+      data: polls,
+    });
+  } catch (error: any) {
+    console.error("❌ POLL FETCH ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
 export default router;

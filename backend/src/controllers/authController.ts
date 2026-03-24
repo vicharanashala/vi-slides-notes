@@ -73,13 +73,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 role: user.role
             }
         });
-    } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during registration'
-        });
-    }
+    } catch (error: any) {
+    console.error('REGISTER FULL ERROR:', error);
+
+    res.status(500).json({
+        success: false,
+        message: error.message, // 👈 shows real error
+        error: error
+    });
+}
 };
 
 // @desc    Login user

@@ -2533,6 +2533,7 @@ import EngagementTeacherView from '../components/EngagementTeacherView';
 import Leaderboard from '../components/Leaderboard';
 import PrivateChat from '../components/PrivateChat';
 import Confetti from '../components/Confetti';
+import StudentQuestionBox from "../components/StudentQuestionBox";
 
 const SessionView: React.FC = () => {
     const { code } = useParams<{ code: string }>();
@@ -2997,6 +2998,8 @@ const SessionView: React.FC = () => {
 
 
     return (
+
+
         <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
             {/* Session Header */}
             <nav style={{
@@ -3175,6 +3178,10 @@ const SessionView: React.FC = () => {
                     )}
                 </div>
             </nav >
+
+            <div style={{ color: 'yellow', padding: '10px' }}>
+                ROLE IS: {user?.role}
+            </div>
             {error && <div className="container" style={{ marginTop: '1rem' }}><div className="alert alert-error">{error}</div></div>}
 
             {showWhiteboard && (
@@ -3322,7 +3329,7 @@ const SessionView: React.FC = () => {
                         {user?.role?.toLowerCase() === 'student' && (
                             <div style={{ marginBottom: '1rem' }}>
                                 <EngagementControls sessionCode={code || ''} user={user} />
-                                <QuestionInput sessionId={session?._id || ''} sessionStatus={session?.status || 'active'} />
+                               <StudentQuestionBox sessionId={session?._id || ''} />
                             </div>
                         )}
                     </div>
@@ -3763,5 +3770,7 @@ const SessionView: React.FC = () => {
         </div >
     );
 };
+
+
 
 export default SessionView;

@@ -49,7 +49,12 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
         }
     };
 
-    const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
+     const options = poll.options || [];
+
+const totalVotes = options.reduce(
+  (sum: number, opt: any) => sum + (opt.votes?.length || 0),
+  0
+);
 
     return (
         <div className="glass-card anim-slide-up" style={{
@@ -81,7 +86,7 @@ const PollCard: React.FC<PollCardProps> = ({ poll, isTeacher, onClose }) => {
             <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>{poll.question}</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {poll.options.map((option, index) => {
+                {(options || []).map((option, index) => {
                     const percentage = totalVotes === 0 ? 0 : Math.round((option.votes / totalVotes) * 100);
                     const showResults = !poll.isActive || voted || isTeacher;
 
