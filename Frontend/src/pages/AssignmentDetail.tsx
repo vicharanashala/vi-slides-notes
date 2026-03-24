@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,94 +30,114 @@ export default function AssignmentDetail() {
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    if (!id) return;
-    getSingleAssignment(id)
-      .then((res) => {
+    const fetchAssignment = async () => {
+      try {
+        if (!id) return;
+        const res = await getSingleAssignment(id);
         setAssignment(res.data.assignment);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setError("Failed to load assignment.");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchAssignment();
   }, [id]);
 
   const handleSubmit = async () => {
-  if (!fileUrl.trim()) {
-    setSubmitError("Please enter a file URL.");
-    return;
-  }
-  setSubmitting(true);
-  setSubmitError("");
-  setSubmitSuccess("");
-  try {
-    await submitAssignment(id!, fileUrl);
-    setSubmitSuccess("Assignment submitted successfully! ✅");
-    setFileUrl("");
-    const res = await getSingleAssignment(id!);
-    setAssignment(res.data.assignment);
-  } catch (err: unknown) {
-    const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-    setSubmitError(errorMessage || "Submission failed. Try again.");
-  } finally {
-    setSubmitting(false);
-  }
-};
-  
+    if (!fileUrl.trim()) {
+      setSubmitError("Please enter a file URL.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError("");
+    setSubmitSuccess("");
+
+    try {
+      await submitAssignment(id!, fileUrl);
+      setSubmitSuccess("Assignment submitted successfully!");
+      setFileUrl("");
+      const res = await getSingleAssignment(id!);
+      setAssignment(res.data.assignment);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setSubmitError(msg || "Submission failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div className="ml-12">
-          <h1 className="text-3xl font-bold mb-1">Assignment Details</h1>
-          <p className="text-gray-400">View and submit your assignment.</p>
+    <div className="flex flex-col min-h-dvh px-4 py-12">
+      <div className="mx-auto w-full max-w-3xl flex flex-col gap-8">
+
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gradient">
+              Assignment Details
+            </h1>
+            <p className="mt-1 text-base text-muted-foreground">
+              View and submit your assignment.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => navigate("/assignment")}>
+            ← Back to Assignments
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => navigate("/assignment")}>
-          ← Back to Assignments
-        </Button>
-      </div>
 
-      <div className="flex flex-1 items-center justify-center">
         {loading ? (
-          <p className="text-gray-400 text-xl">Loading...</p>
-        ) : error ? (
-          <p className="text-red-400 text-xl">{error}</p>
-        ) : assignment ? (
-          <div className="w-full max-w-2xl flex flex-col gap-6">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-muted-foreground text-xl">Loading...</p>
+          </div>
 
-            {/* Info Card */}
-            <Card className="p-6">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="flex items-center gap-3 text-2xl">
-                  <ClipboardList className="w-7 h-7 text-orange-500" />
+        ) : error ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-destructive text-xl font-medium">{error}</p>
+          </div>
+
+        ) : assignment ? (
+          <div className="flex flex-col gap-6">
+
+            <Card className="shadow-xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-3 text-lg font-bold text-gradient">
+                  <ClipboardList className="w-6 h-6 text-accent" />
                   {assignment.title}
                 </CardTitle>
+                <CardDescription>
+                  {assignment.description}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-0 flex flex-col gap-3">
-                <p className="text-gray-300">{assignment.description}</p>
-                <div className="flex justify-between text-sm mt-2">
-                  <p className="text-gray-400">
+              <CardContent className="flex flex-col gap-2 pt-0 pb-4 px-6">
+                <div className="flex justify-between text-sm">
+                  <p className="text-muted-foreground">
                     By:{" "}
-                    <span className="text-white">
+                    <span className="text-foreground font-medium">
                       {assignment.createdBy?.fullname}
                     </span>
                   </p>
-                  <p className="text-orange-400">
+                  <p className="text-accent font-medium">
                     Due: {new Date(assignment.dueDate).toLocaleDateString()}
                   </p>
                 </div>
-                <p className="text-gray-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Max Marks:{" "}
-                  <span className="text-white">{assignment.maxMarks}</span>
+                  <span className="text-foreground font-medium">
+                    {assignment.maxMarks}
+                  </span>
                 </p>
               </CardContent>
             </Card>
 
-            {/* Submit Card */}
-            <Card className="p-6">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-xl">Submit Assignment</CardTitle>
+            <Card className="shadow-xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-bold text-gradient">
+                  Submit Assignment
+                </CardTitle>
               </CardHeader>
-              <CardContent className="p-0 flex flex-col gap-4">
+              <CardContent className="flex flex-col gap-4 pt-0 pb-4 px-6">
                 <div className="grid gap-2">
                   <Label htmlFor="fileUrl">File URL</Label>
                   <Input
@@ -128,24 +149,27 @@ export default function AssignmentDetail() {
                 </div>
 
                 {submitError && (
-                  <p className="text-red-400 text-sm">{submitError}</p>
+                  <p className="text-destructive text-sm">{submitError}</p>
                 )}
                 {submitSuccess && (
-                  <p className="text-green-400 text-sm">{submitSuccess}</p>
+                  <p className="text-green-500 text-sm">{submitSuccess}</p>
                 )}
 
                 <Button
-                  className="w-full"
+                  size="sm"
                   onClick={handleSubmit}
                   disabled={submitting}
                 >
-                  {submitting ? "Submitting..." : "Submit"}
+                  <span className="text-gradient">
+                    {submitting ? "Submitting..." : "Submit"}
+                  </span>
                 </Button>
               </CardContent>
             </Card>
 
           </div>
         ) : null}
+
       </div>
     </div>
   );

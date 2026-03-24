@@ -6,6 +6,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { getAssignments, type Assignment } from "@/lib/api";
@@ -17,77 +18,101 @@ export default function Assignment() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getAssignments()
-      .then((res) => {
+    const fetchAssignments = async () => {
+      try {
+        const res = await getAssignments();
         setAssignments(res.data.assignments);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setError("Failed to load assignments.");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchAssignments();
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div className="ml-12">
-          <h1 className="text-3xl font-bold mb-1">Assignments</h1>
-          <p className="text-gray-400">View and submit your assignments.</p>
-        </div>
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          ← Back to Dashboard
-        </Button>
-      </div>
+    <div className="flex flex-col min-h-dvh px-4 py-12">
+      <div className="mx-auto w-full max-w-3xl flex flex-col gap-8">
 
-      <div className="flex flex-1 items-center justify-center">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gradient">Assignments</h1>
+            <p className="mt-1 text-base text-muted-foreground">
+              View and submit your assignments.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+            ← Back to Dashboard
+          </Button>
+        </div>
+
+        {/* Content */}
         {loading ? (
-          <p className="text-gray-400 text-xl">Loading...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-muted-foreground text-xl">Loading...</p>
+          </div>
+
         ) : error ? (
-          <p className="text-red-400 text-xl">{error}</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-destructive text-xl font-medium">{error}</p>
+          </div>
+
         ) : assignments.length === 0 ? (
-          <Card className="w-full max-w-2xl text-center px-16 py-20">
-            <CardHeader>
-              <CardTitle className="flex flex-col items-center gap-8">
-                <ClipboardList className="w-20 h-20 text-orange-500" />
-                <span className="text-3xl font-semibold">No assignments yet</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500 text-xl">
-                Check back later for new assignments.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Card className="shadow-xl w-full">
+              <CardHeader className="items-center text-center pb-4">
+                <ClipboardList className="w-12 h-12 text-accent mb-2" />
+                <CardTitle className="text-2xl font-bold text-gradient">
+                  No assignments yet
+                </CardTitle>
+                <CardDescription>
+                  Check back later for new assignments from your teacher.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
         ) : (
-          <div className="w-full max-w-2xl flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
             {assignments.map((a) => (
-              <Card key={a._id} className="p-5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-semibold">{a.title}</h2>
-                    <p className="text-gray-400 mt-1 text-sm">{a.description}</p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      By: {a.createdBy?.fullname}
-                    </p>
-                  </div>
-                  <div className="text-right text-sm shrink-0 ml-4">
-                    <p className="text-orange-400">
+              <Card key={a._id} className="shadow-xl">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-4">
+                    <CardTitle className="text-lg font-bold text-gradient">
+                      {a.title}
+                    </CardTitle>
+                    <span className="text-accent font-medium text-sm shrink-0 pt-0.5">
                       Due: {new Date(a.dueDate).toLocaleDateString()}
-                    </p>
-                    <p className="text-gray-400">Marks: {a.maxMarks}</p>
+                    </span>
                   </div>
-                </div>
-                <Button
-                  className="mt-4 w-full"
-                  onClick={() => navigate(`/assignment/${a._id}`)}
-                >
-                  View & Submit
-                </Button>
+                  <CardDescription>{a.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-between items-center pt-0 pb-4 px-6">
+                  <p className="text-sm text-muted-foreground">
+                    By:{" "}
+                    <span className="text-foreground font-medium">
+                      {a.createdBy?.fullname}
+                    </span>
+                    {" · "}Marks:{" "}
+                    <span className="text-foreground font-medium">
+                      {a.maxMarks}
+                    </span>
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/assignment/${a._id}`)}
+                  >
+                    <span className="text-gradient">View & Submit</span>
+                  </Button>
+                </CardContent>
               </Card>
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
