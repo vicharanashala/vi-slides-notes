@@ -104,7 +104,7 @@ export default function SigninForm() {
                 <Label htmlFor="password" className="text-base font-medium text-muted-foreground">
                   Password
                 </Label>
-                <div className="relative mt-2">
+                <div className="relative flex items-center mt-2">
                   <Input
                     id="password"
                     name="password"
@@ -118,7 +118,7 @@ export default function SigninForm() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 text-muted-foreground hover:bg-transparent"
+                    className="absolute right-2 h-9 w-9 text-muted-foreground hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

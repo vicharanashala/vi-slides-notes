@@ -1,5 +1,6 @@
 import { CertificatesCard, AssignmentsCard, JoinSessionCard } from "./student-card";
 import { useAuth } from "@/context/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -8,6 +9,14 @@ export default function StudentDashboard() {
 
   return (
     <div className="py-12 px-8 max-w-7xl mx-auto">
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-white">
+          Student Dashboard
+        </h1>
+
+        <NotificationBell />
+      </div>
       
       <div className={`${cardClass} mb-10 px-10 py-10 shadow-lg`}>
         <h1 className="text-4xl md:text-5xl font-bold mb-2 text-gradient">
