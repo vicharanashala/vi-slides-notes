@@ -310,7 +310,7 @@ const Dashboard: React.FC = () => {
                         <>
                             <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0) 100%)' }}>
                                 <h3>Join Session</h3>
-                                <p className="text-muted mt-1">Enter the 6-digit code provided by your teacher.</p>
+                                <p className="text-muted mt-1">Enter the 8-digit code provided by your teacher.</p>
                                 <form onSubmit={handleJoinSession} style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                                     <input
                                         type="text"
