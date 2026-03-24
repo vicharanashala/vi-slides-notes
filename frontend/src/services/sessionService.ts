@@ -68,6 +68,12 @@ export const sessionService = {
         return response.data;
     },
 
+    // Start a session (Teacher)
+    startSession: async (id: string): Promise<{ success: boolean; status: string; message: string }> => {
+        const response = await api.patch(`/sessions/${id}/start`);
+        return response.data;
+    },
+
     // Pause/Resume a session (Teacher)
     pauseSession: async (id: string): Promise<{ success: boolean; status: string; message: string }> => {
         const response = await api.patch(`/sessions/${id}/pause`);

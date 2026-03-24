@@ -318,6 +318,20 @@ const SessionView: React.FC = () => {
         }
     };
 
+    const handleStartSession = async () => {
+        if (!session) return;
+        try {
+            const response = await sessionService.startSession(session._id);
+            if (response.success) {
+                setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+                setToast({ message: 'Session started!', type: 'success' });
+            }
+        } catch (err) {
+            console.error('Error starting session:', err);
+            setToast({ message: 'Failed to start session', type: 'error' });
+        }
+    };
+
 
 
     const handleExportPDF = () => {
@@ -521,6 +535,19 @@ const SessionView: React.FC = () => {
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-primary-light)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
                             Live Session
                         </div>
+                        {session.status === 'inactive' && (
+                            <span style={{
+                                background: 'rgba(156, 163, 175, 0.2)',
+                                color: '#6b7280',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                textTransform: 'uppercase'
+                            }}>
+                                NOT STARTED
+                            </span>
+                        )}
                         {session.status === 'paused' && (
                             <span style={{
                                 background: 'rgba(245, 158, 11, 0.2)',
@@ -532,6 +559,19 @@ const SessionView: React.FC = () => {
                                 textTransform: 'uppercase'
                             }}>
                                 PAUSED
+                            </span>
+                        )}
+                        {session.status === 'ended' && (
+                            <span style={{
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                color: '#ef4444',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                textTransform: 'uppercase'
+                            }}>
+                                ENDED
                             </span>
                         )}
                     </div>
@@ -627,17 +667,32 @@ const SessionView: React.FC = () => {
                             >
                                 📊 Poll
                             </button>
-                            <button
-                                onClick={handlePauseSession}
-                                className="btn btn-secondary"
-                                style={{
-                                    background: session.status === 'paused' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                    color: session.status === 'paused' ? '#10b981' : '#f59e0b',
-                                    borderColor: session.status === 'paused' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
-                                }}
-                            >
-                                {session.status === 'paused' ? 'Resume' : 'Pause'}
-                            </button>
+                            {session.status === 'inactive' && (
+                                <button
+                                    onClick={handleStartSession}
+                                    className="btn btn-primary"
+                                    style={{
+                                        background: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        borderColor: 'rgba(16, 185, 129, 0.2)'
+                                    }}
+                                >
+                                    Start Session
+                                </button>
+                            )}
+                            {session.status !== 'inactive' && session.status !== 'ended' && (
+                                <button
+                                    onClick={handlePauseSession}
+                                    className="btn btn-secondary"
+                                    style={{
+                                        background: session.status === 'paused' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                        color: session.status === 'paused' ? '#10b981' : '#f59e0b',
+                                        borderColor: session.status === 'paused' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                                    }}
+                                >
+                                    {session.status === 'paused' ? 'Resume' : 'Pause'}
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowEngagement(!showEngagement)}
                                 className="btn btn-secondary"
