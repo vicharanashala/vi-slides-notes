@@ -1,4 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
+import TeacherDashboard from "@/components/teacher-dashboard";
+
 import Navbar from "@/components/navbar";
 import StudentDashboard from "@/components/student-dashboard";
 
@@ -15,7 +17,7 @@ export default function Dashboard() {
       <Navbar />
       <main className="pt-18">
         {user?.role === "Instructor" ? (
-          <p>You are logged in as an Instructor</p>
+          <TeacherDashboard />
         ) : (
           <StudentDashboard/>
         )}
