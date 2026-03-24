@@ -5,8 +5,10 @@ import {
     joinSession,
     getSessionDetails,
     endSession,
-    getActiveSession,
+    startSession,
     pauseSession,
+    resumeSession,
+    getActiveSession,
     leaveSession,
     getStudentSessions,
     getOrCreateQuerySession,
@@ -64,9 +66,17 @@ router.get('/:code', getSessionDetails);
 // @desc    End a session (Teacher)
 router.patch('/:id/end', authorize('Teacher'), endSession);
 
+// @route   PATCH /api/sessions/:id/start
+// @desc    Start a session (Teacher)
+router.patch('/:id/start', authorize('Teacher'), startSession);
+
 // @route   PATCH /api/sessions/:id/pause
-// @desc    Pause/Resume a session (Teacher)
+// @desc    Pause a session (Teacher)
 router.patch('/:id/pause', authorize('Teacher'), pauseSession);
+
+// @route   PATCH /api/sessions/:id/resume
+// @desc    Resume a session (Teacher)
+router.patch('/:id/resume', authorize('Teacher'), resumeSession);
 
 // @route   POST /api/sessions/:code/leave
 // @desc    Leave a session

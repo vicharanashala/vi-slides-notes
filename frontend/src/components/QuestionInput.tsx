@@ -8,7 +8,7 @@ interface QuestionInputProps {
 }
 
 const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus, onQuestionSubmitted }) => {
-    const isPaused = sessionStatus === 'paused';
+    const isDisabled = sessionStatus === 'paused' || sessionStatus === 'ended';
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -92,28 +92,28 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
                 <div className="form-group" style={{ marginBottom: '0.75rem', position: 'relative' }}>
                     <textarea
                         className="form-input"
-                        placeholder={isPaused ? "Session is paused by teacher..." : "Ask a question..."}
+                        placeholder={isDisabled ? (sessionStatus === 'ended' ? "Session has ended..." : "Session is paused by teacher...") : "Ask a question..."}
                         rows={3}
                         style={{
                             resize: 'none',
-                            background: isPaused ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)',
+                            background: isDisabled ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)',
                             borderRadius: 'var(--radius-lg)',
                             transition: 'all 0.3s ease',
-                            cursor: isPaused ? 'not-allowed' : 'text',
+                            cursor: isDisabled ? 'not-allowed' : 'text',
                             paddingRight: '3rem'
                         }}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !isPaused) {
+                            if (e.key === 'Enter' && !e.shiftKey && !isDisabled) {
                                 e.preventDefault();
                                 handleSubmit(e);
                             }
                         }}
-                        disabled={loading || isPaused}
+                        disabled={loading || isDisabled}
                     ></textarea>
 
-                    {!isPaused && (
+                    {!isDisabled && (
                         <button
                             type="button"
                             onClick={handleVoiceInput}
@@ -150,9 +150,9 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
                         type="submit"
                         className="btn btn-primary"
                         style={{ padding: '0.6rem 1.5rem', borderRadius: 'var(--radius-full)' }}
-                        disabled={loading || !content.trim() || isPaused}
+                        disabled={loading || !content.trim() || isDisabled}
                     >
-                        {loading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div> : (isPaused ? 'Paused' : 'Send Question')}
+                        {loading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div> : (isDisabled ? (sessionStatus === 'ended' ? 'Session Ended' : 'Paused') : 'Send Question')}
                     </button>
                 </div>
             </form>

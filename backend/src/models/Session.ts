@@ -67,7 +67,7 @@ const sessionSchema = new Schema<ISession>({
     status: {
         type: String,
         enum: ['active', 'inactive', 'ended', 'paused'],
-        default: 'active'
+        default: 'inactive'
     },
     isQuerySession: {
         type: Boolean,

@@ -78,7 +78,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
             description,
             code,
             teacher: req.user?._id,
-            status: 'active'
+            status: 'inactive'
         });
 
         const baseUrl = getLocalUrl();
@@ -264,7 +264,50 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
-// @desc    Pause or Resume a session
+// @desc    Start a session
+// @route   PATCH /api/sessions/:id/start
+// @access  Private (Teacher only)
+export const startSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            res.status(404).json({ success: false, message: 'Session not found' });
+            return;
+        }
+
+        // Check if user is the teacher of this session
+        if (session.teacher.toString() !== req.user?._id.toString()) {
+            res.status(403).json({ success: false, message: 'Unauthorized to start this session' });
+            return;
+        }
+
+        if (session.status !== 'inactive') {
+            res.status(400).json({ success: false, message: 'Session is already started or in another state' });
+            return;
+        }
+
+        session.status = 'active';
+        await session.save();
+
+        // Notify all participants
+        emitToSession(session.code, 'session_status_update', { status: 'active' });
+
+        res.status(200).json({
+            success: true,
+            status: 'active',
+            message: 'Session started successfully'
+        });
+    } catch (error) {
+        console.error('Start session error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error starting session'
+        });
+    }
+};
+
+// @desc    Pause a session
 // @route   PATCH /api/sessions/:id/pause
 // @access  Private (Teacher only)
 export const pauseSession = async (req: Request, res: Response): Promise<void> => {
@@ -282,24 +325,70 @@ export const pauseSession = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        // Toggle status
-        const newStatus = session.status === 'paused' ? 'active' : 'paused';
-        session.status = newStatus;
+        if (session.status !== 'active') {
+            res.status(400).json({ success: false, message: 'Session must be active to pause' });
+            return;
+        }
+
+        session.status = 'paused';
         await session.save();
 
         // Notify all participants
-        emitToSession(session.code, 'session_status_update', { status: newStatus });
+        emitToSession(session.code, 'session_status_update', { status: 'paused' });
 
         res.status(200).json({
             success: true,
-            status: newStatus,
-            message: `Session ${newStatus === 'paused' ? 'paused' : 'resumed'} successfully`
+            status: 'paused',
+            message: 'Session paused successfully'
         });
     } catch (error) {
         console.error('Pause session error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error toggling session pause'
+        });
+    }
+};
+
+// @desc    Resume a session
+// @route   PATCH /api/sessions/:id/resume
+// @access  Private (Teacher only)
+export const resumeSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            res.status(404).json({ success: false, message: 'Session not found' });
+            return;
+        }
+
+        // Check if user is the teacher of this session
+        if (session.teacher.toString() !== req.user?._id.toString()) {
+            res.status(403).json({ success: false, message: 'Unauthorized to resume this session' });
+            return;
+        }
+
+        if (session.status !== 'paused') {
+            res.status(400).json({ success: false, message: 'Session must be paused to resume' });
+            return;
+        }
+
+        session.status = 'active';
+        await session.save();
+
+        // Notify all participants
+        emitToSession(session.code, 'session_status_update', { status: 'active' });
+
+        res.status(200).json({
+            success: true,
+            status: 'active',
+            message: 'Session resumed successfully'
+        });
+    } catch (error) {
+        console.error('Resume session error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error resuming session'
         });
     }
 };

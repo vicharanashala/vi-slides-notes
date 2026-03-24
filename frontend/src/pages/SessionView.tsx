@@ -305,16 +305,45 @@
 //         }
 //     };
 
+//     const handleStartSession = async () => {
+//         if (!session) return;
+//         try {
+//             const response = await sessionService.startSession(session._id);
+//             if (response.success) {
+//                 setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+//                 setToast({ message: 'Session started successfully', type: 'success' });
+//             }
+//         } catch (err) {
+//             console.error('Error starting session:', err);
+//             setToast({ message: 'Failed to start session', type: 'error' });
+//         }
+//     };
+
 //     const handlePauseSession = async () => {
 //         if (!session) return;
 //         try {
 //             const response = await sessionService.pauseSession(session._id);
 //             if (response.success) {
 //                 setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+//                 setToast({ message: 'Session paused successfully', type: 'info' });
 //             }
 //         } catch (err) {
-//             console.error('Error toggling pause:', err);
-//             setToast({ message: 'Failed to update session status', type: 'error' });
+//             console.error('Error pausing session:', err);
+//             setToast({ message: 'Failed to pause session', type: 'error' });
+//         }
+//     };
+
+//     const handleResumeSession = async () => {
+//         if (!session) return;
+//         try {
+//             const response = await sessionService.resumeSession(session._id);
+//             if (response.success) {
+//                 setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+//                 setToast({ message: 'Session resumed successfully', type: 'success' });
+//             }
+//         } catch (err) {
+//             console.error('Error resuming session:', err);
+//             setToast({ message: 'Failed to resume session', type: 'error' });
 //         }
 //     };
 
@@ -521,6 +550,32 @@
 //                         <div style={{ fontSize: '0.8rem', color: 'var(--color-primary-light)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
 //                             Live Session
 //                         </div>
+//                         {session.status === 'inactive' && (
+//                             <span style={{
+//                                 background: 'rgba(156, 163, 175, 0.2)',
+//                                 color: '#6b7280',
+//                                 padding: '0.2rem 0.6rem',
+//                                 borderRadius: 'var(--radius-sm)',
+//                                 fontSize: '0.7rem',
+//                                 fontWeight: '700',
+//                                 textTransform: 'uppercase'
+//                             }}>
+//                                 NOT STARTED
+//                             </span>
+//                         )}
+//                         {session.status === 'active' && (
+//                             <span style={{
+//                                 background: 'rgba(16, 185, 129, 0.2)',
+//                                 color: '#10b981',
+//                                 padding: '0.2rem 0.6rem',
+//                                 borderRadius: 'var(--radius-sm)',
+//                                 fontSize: '0.7rem',
+//                                 fontWeight: '700',
+//                                 textTransform: 'uppercase'
+//                             }}>
+//                                 ACTIVE
+//                             </span>
+//                         )}
 //                         {session.status === 'paused' && (
 //                             <span style={{
 //                                 background: 'rgba(245, 158, 11, 0.2)',
@@ -532,6 +587,19 @@
 //                                 textTransform: 'uppercase'
 //                             }}>
 //                                 PAUSED
+//                             </span>
+//                         )}
+//                         {session.status === 'ended' && (
+//                             <span style={{
+//                                 background: 'rgba(239, 68, 68, 0.2)',
+//                                 color: '#ef4444',
+//                                 padding: '0.2rem 0.6rem',
+//                                 borderRadius: 'var(--radius-sm)',
+//                                 fontSize: '0.7rem',
+//                                 fontWeight: '700',
+//                                 textTransform: 'uppercase'
+//                             }}>
+//                                 ENDED
 //                             </span>
 //                         )}
 //                     </div>
@@ -2819,19 +2887,6 @@ const SessionView: React.FC = () => {
         }
     };
 
-    const handlePauseSession = async () => {
-        if (!session) return;
-        try {
-            const response = await sessionService.pauseSession(session._id);
-            if (response.success) {
-                setSession(prev => prev ? { ...prev, status: response.status as any } : null);
-            }
-        } catch (err) {
-            console.error('Error toggling pause:', err);
-            setToast({ message: 'Failed to update session status', type: 'error' });
-        }
-    };
-
 
 
     const handleExportPDF = () => {
@@ -2904,6 +2959,48 @@ const SessionView: React.FC = () => {
 
     const handleEndSession = () => {
         setShowEndModal(true);
+    };
+
+    const handleStartSession = async () => {
+        if (!session) return;
+        try {
+            const response = await sessionService.startSession(session._id);
+            if (response.success) {
+                setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+                setToast({ message: 'Session started successfully', type: 'success' });
+            }
+        } catch (err) {
+            console.error('Error starting session:', err);
+            setToast({ message: 'Failed to start session', type: 'error' });
+        }
+    };
+
+    const handlePauseSession = async () => {
+        if (!session) return;
+        try {
+            const response = await sessionService.pauseSession(session._id);
+            if (response.success) {
+                setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+                setToast({ message: 'Session paused successfully', type: 'info' });
+            }
+        } catch (err) {
+            console.error('Error pausing session:', err);
+            setToast({ message: 'Failed to pause session', type: 'error' });
+        }
+    };
+
+    const handleResumeSession = async () => {
+        if (!session) return;
+        try {
+            const response = await sessionService.resumeSession(session._id);
+            if (response.success) {
+                setSession(prev => prev ? { ...prev, status: response.status as any } : null);
+                setToast({ message: 'Session resumed successfully', type: 'success' });
+            }
+        } catch (err) {
+            console.error('Error resuming session:', err);
+            setToast({ message: 'Failed to resume session', type: 'error' });
+        }
     };
 
     const confirmEndSession = async () => {
@@ -3017,6 +3114,32 @@ const SessionView: React.FC = () => {
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-primary-light)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
                             Live Session
                         </div>
+                        {session.status === 'inactive' && (
+                            <span style={{
+                                background: 'rgba(156, 163, 175, 0.2)',
+                                color: '#6b7280',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                textTransform: 'uppercase'
+                            }}>
+                                NOT STARTED
+                            </span>
+                        )}
+                        {session.status === 'active' && (
+                            <span style={{
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                color: '#10b981',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                textTransform: 'uppercase'
+                            }}>
+                                ACTIVE
+                            </span>
+                        )}
                         {session.status === 'paused' && (
                             <span style={{
                                 background: 'rgba(245, 158, 11, 0.2)',
@@ -3028,6 +3151,19 @@ const SessionView: React.FC = () => {
                                 textTransform: 'uppercase'
                             }}>
                                 PAUSED
+                            </span>
+                        )}
+                        {session.status === 'ended' && (
+                            <span style={{
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                color: '#ef4444',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                textTransform: 'uppercase'
+                            }}>
+                                ENDED
                             </span>
                         )}
                     </div>
@@ -3123,17 +3259,50 @@ const SessionView: React.FC = () => {
                             >
                                 📊 Poll
                             </button>
-                            <button
-                                onClick={handlePauseSession}
-                                className="btn btn-secondary"
-                                style={{
-                                    background: session.status === 'paused' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                    color: session.status === 'paused' ? '#10b981' : '#f59e0b',
-                                    borderColor: session.status === 'paused' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
-                                }}
-                            >
-                                {session.status === 'paused' ? 'Resume' : 'Pause'}
-                            </button>
+                            {session.status === 'inactive' && (
+                                <button
+                                    onClick={handleStartSession}
+                                    className="btn btn-secondary"
+                                    style={{
+                                        background: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        borderColor: 'rgba(16, 185, 129, 0.2)'
+                                    }}
+                                >
+                                    ▶️ Start Session
+                                </button>
+                            )}
+                            {session.status === 'active' && (
+                                <button
+                                    onClick={handlePauseSession}
+                                    className="btn btn-secondary"
+                                    style={{
+                                        background: 'rgba(245, 158, 11, 0.1)',
+                                        color: '#f59e0b',
+                                        borderColor: 'rgba(245, 158, 11, 0.2)'
+                                    }}
+                                >
+                                    ⏸️ Pause Session
+                                </button>
+                            )}
+                            {session.status === 'paused' && (
+                                <button
+                                    onClick={handleResumeSession}
+                                    className="btn btn-secondary"
+                                    style={{
+                                        background: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        borderColor: 'rgba(16, 185, 129, 0.2)'
+                                    }}
+                                >
+                                    ▶️ Resume Session
+                                </button>
+                            )}
+                            {session.status !== 'ended' && (
+                                <button onClick={handleEndSession} className="btn btn-secondary" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                                    ⏹️ End Session
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowEngagement(!showEngagement)}
                                 className="btn btn-secondary"

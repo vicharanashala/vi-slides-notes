@@ -405,6 +405,17 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             return;
         }
 
+        // Check if session allows new questions
+        if (session.status === 'paused') {
+            res.status(403).json({ success: false, message: 'Session is currently paused. Questions cannot be submitted at this time.' });
+            return;
+        }
+
+        if (session.status === 'ended') {
+            res.status(403).json({ success: false, message: 'Session has ended. Questions can no longer be submitted.' });
+            return;
+        }
+
         const question = await Question.create({
             content,
             user: req.user?._id,
