@@ -314,7 +314,7 @@ const Dashboard: React.FC = () => {
                                 <form onSubmit={handleJoinSession} style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                                     <input
                                         type="text"
-                                        placeholder="E.G. AB1234"
+                                        placeholder="E.G. AB12CD34"
                                         className="form-input"
                                         style={{ textTransform: 'uppercase' }}
                                         value={joinCode}
