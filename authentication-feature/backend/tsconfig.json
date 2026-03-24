@@ -20,7 +20,7 @@
     },
     "include": [
         "src/**/*"
-    ],
+, "../frontend/src/api.ts"    ],
     "exclude": [
         "node_modules",
         "dist"
