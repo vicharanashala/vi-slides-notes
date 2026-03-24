@@ -9,6 +9,7 @@ import Assignment from "./pages/Assignment";
 import AssignmentDetail from "./pages/AssignmentDetail";
 import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
+import EditProfile from "./pages/EditProfile"
 
 function App() {
   return (
@@ -58,6 +59,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AssignmentDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit-profile"
+            element={
+              <ProtectedRoute>
+                <EditProfile />
               </ProtectedRoute>
             }
           />

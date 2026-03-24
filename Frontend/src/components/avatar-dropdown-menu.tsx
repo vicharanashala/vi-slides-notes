@@ -10,10 +10,12 @@ import {
 import { LogOutIcon } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { ModeToggle } from "./mode-toggle"
+import { useNavigate } from "react-router-dom"
+import { PencilIcon } from "lucide-react";
 
 export function DropdownMenuAvatar() {
   const { logout, user } = useAuth()
-
+  const navigate = useNavigate()
   const initials =
     user?.fullname
       ?.split(" ")
@@ -40,7 +42,18 @@ export function DropdownMenuAvatar() {
           <ModeToggle />
         </div>
         <DropdownMenuSeparator className="sm:hidden" />
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onSelect={(e) => {
+            e.preventDefault()
+            navigate("/edit-profile")
+          }}
+        >
+          <PencilIcon className="h-4 w-4" />
+          Edit Profile
+        </DropdownMenuItem>
 
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive cursor-pointer"
           onSelect={(e) => {
