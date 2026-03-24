@@ -1,0 +1,205 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+
+export default function EditProfile() {
+  const { user, updateUser } = useAuth();
+
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    fullname: user?.fullname || "",
+    oldPassword: "",
+    newPassword: "",
+  });
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleSubmit = async () => {
+    setError(null);
+    setSuccess(null);
+
+    // ❗ Validation (based on backend)
+    if (
+      !formData.fullname &&
+      !formData.oldPassword &&
+      !formData.newPassword
+    ) {
+      setError("Nothing to update");
+      return;
+    }
+
+    // If one password field is filled, require both
+    if (
+      (formData.oldPassword && !formData.newPassword) ||
+      (!formData.oldPassword && formData.newPassword)
+    ) {
+      setError("Both old and new password are required");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await updateUser(formData);
+
+      setSuccess("Profile updated successfully");
+
+      setFormData((prev) => ({
+        ...prev,
+        oldPassword: "",
+        newPassword: "",
+      }));
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-dvh px-4">
+      <div className="absolute top-6 left-6">
+        <Button
+            onClick={() => navigate(-1)}
+            className="absolute top-6 left-6 px-4 h-10"
+            >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="text-gradient">Back</span>
+        </Button>
+      </div>  
+      <div className="w-full max-w-lg">
+        <Card className="border-none shadow-lg pb-0">
+
+          {/* Header */}
+          <div className="text-center pt-6 pb-2">
+            <h2 className="text-xl font-semibold text-gradient">
+              Edit Profile
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Update your account details
+            </p>
+          </div>
+
+          {/* Content */}
+          <CardContent className="space-y-5 px-8 pb-6">
+
+            {/* Error */}
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+                {error}
+              </p>
+            )}
+
+            {/* Success */}
+            {success && (
+              <p className="text-sm text-green-500 bg-green-500/10 px-3 py-2 rounded-md">
+                {success}
+              </p>
+            )}
+
+            {/* Fullname */}
+            <div className="space-y-2">
+              <Label className="text-sm">Full Name</Label>
+              <Input
+                name="fullname"
+                value={formData.fullname}
+                onChange={handleChange}
+                className="h-11 text-sm"
+              />
+            </div>
+
+            {/* Old Password */}
+            <div className="space-y-2">
+                <Label className="text-sm">Old Password</Label>
+
+                <div className="relative flex items-center mt-2">
+                    <Input
+                        name="oldPassword"
+                        type={showOldPassword ? "text" : "password"}
+                        className="h-11 pr-11 text-sm"
+                        value={formData.oldPassword}
+                        onChange={handleChange}
+                    />
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 h-9 w-9 text-muted-foreground hover:bg-transparent"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                    >
+                    {showOldPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                    ) : (
+                        <Eye className="h-4 w-4" />
+                    )}
+                    </Button>
+                </div>
+            </div>
+
+            {/* New Password */}
+            <div className="space-y-2">
+                <Label className="text-sm">New Password</Label>
+
+                <div className="relative flex items-center mt-2">
+                    <Input
+                        name="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        className="h-11 pr-11 text-sm"
+                        value={formData.newPassword}
+                        onChange={handleChange}
+                    />
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 h-9 w-9 text-muted-foreground hover:bg-transparent"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                        {showNewPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                        ) : (
+                            <Eye className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+
+            {/* Submit */}
+            <Button
+              className="w-full h-11 text-sm font-medium"
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              <span className="text-gradient">
+                {isLoading ? "Updating..." : "Update Profile"}
+              </span>
+            </Button>
+
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
