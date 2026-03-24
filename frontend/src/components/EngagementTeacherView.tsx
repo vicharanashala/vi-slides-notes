@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { socketService } from '../services/socketService';
 
+interface Props {
+    handRaisedMap: Map<string, any>;
+}
 interface UnderstandingUpdate {
     socketId: string;
     understanding: 'confused' | 'neutral' | 'understanding';
@@ -13,9 +16,8 @@ interface HandRaiseUpdate {
     user: any;
 }
 
-const EngagementTeacherView: React.FC = () => {
+const EngagementTeacherView: React.FC<Props> = ({ handRaisedMap }) => {
     const [understandingMap, setUnderstandingMap] = useState<Map<string, UnderstandingUpdate>>(new Map());
-    const [handRaisedMap, setHandRaisedMap] = useState<Map<string, HandRaiseUpdate>>(new Map());
 
     useEffect(() => {
         socketService.onTeacherUnderstandingUpdate((data) => {

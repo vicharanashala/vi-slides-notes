@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Student {
     _id: string;
@@ -11,11 +12,19 @@ interface Student {
 
 interface LeaderboardProps {
     students?: Student[];
+    teacherId?: string;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ students = [] }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ students = [], teacherId }) => {
+    const { user } = useAuth();
     // Sort students by points (high to low)
-    const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
+    const filteredStudents = students.filter(
+        (s) => s._id !== teacherId
+    );
+
+const sortedStudents = [...filteredStudents].sort(
+    (a, b) => (b.points || 0) - (a.points || 0)
+);
 
     return (
         <div className="glass-card" style={{ padding: '1rem' }}>
