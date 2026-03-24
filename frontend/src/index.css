@@ -58,7 +58,8 @@
   --transition-slow: 350ms ease-in-out;
 
   /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -537,7 +538,10 @@ a:hover {
   width: 100%;
   margin: 0;
   padding: 0;
-  transition: max-width 300ms ease-in-out, padding 300ms ease-in-out, width 300ms ease-in-out;
+  transition:
+    max-width 300ms ease-in-out,
+    padding 300ms ease-in-out,
+    width 300ms ease-in-out;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
