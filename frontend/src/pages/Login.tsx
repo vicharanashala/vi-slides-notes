@@ -6,26 +6,22 @@ import { authService } from '../services/authService';
 import './Auth.css';
 
 const Login: React.FC = () => {
+    const [joinCode, setJoinCode] = useState('');
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
-    const { login } = useAuth();
-    // Actually AuthContext login takes LoginData {email, password}. Google login returns token/user directly.
-    // I should probably manually handle the state update here or add a googleLogin method to context.
-    // For now, let's just handle it here by setting session and reloading/updating context.
-    // Wait, AuthContext sets state on login. I should probably add googleLogin to context or just update user manually.
-    // Let's use the 'login' from context if possible, but it expects email/pass.
-    // Better to update AuthContext to force set user.
-    // Let's check AuthContext again. It has setUser/updateUser.
-
-    // Correction: AuthContext has `login` function which does the API call. 
-    // I will manually call authService.googleLogin, then update context.
-
-    const navigate = useNavigate();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const navigate = useNavigate();
+    const { login } = useAuth();
+    const handleJoinSession = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (joinCode.trim()) {
+            navigate(`/join/${joinCode.trim()}`);
+        }
+    };
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,10 +45,9 @@ const Login: React.FC = () => {
         try {
             const res = await authService.googleLogin(credentialResponse.credential);
             if (res.success) {
-                // Manually update session storage and context since we bypassed context.login
                 sessionStorage.setItem('token', res.token);
                 sessionStorage.setItem('user', JSON.stringify(res.user));
-                window.location.href = '/dashboard'; // Hard reload to ensure context picks up or use proper context method
+                window.location.href = '/dashboard'; 
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Google Login failed');
@@ -138,16 +133,32 @@ const Login: React.FC = () => {
                             className="btn btn-primary btn-block"
                             disabled={loading}
                         >
-                            {loading ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    <span style={{ marginLeft: '0.5rem' }}>Signing in...</span>
-                                </>
-                            ) : (
-                                'Sign In'
-                            )}
+                            {loading ? 'Signing in...' : 'Sign In'}
                         </button>
                     </form>
+
+                    {/* STUDENT JOIN SECTION */}
+                    <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
+                            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                            <span style={{ margin: '0 10px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>OR JOIN AS STUDENT</span>
+                            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                        </div>
+                        
+                        <form onSubmit={handleJoinSession}>
+                            <input 
+                                type="text" 
+                                className="form-input" 
+                                placeholder="Enter 6-digit Session Code" 
+                                value={joinCode}
+                                onChange={(e) => setJoinCode(e.target.value)}
+                                style={{ marginBottom: '0.5rem' }}
+                            />
+                            <button type="submit" className="btn btn-secondary btn-block">
+                                Join Session
+                            </button>
+                        </form>
+                    </div>
 
                     <div style={{ margin: '1.5rem 0', textAlign: 'center', position: 'relative' }}>
                         <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0 10px', color: '#ccc', position: 'relative', zIndex: 1, borderRadius: '4px' }}>OR</span>
@@ -172,9 +183,9 @@ const Login: React.FC = () => {
                             </Link>
                         </p>
                     </div>
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+        </div>
     );
 };
 
