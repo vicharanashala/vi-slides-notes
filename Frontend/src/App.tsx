@@ -7,6 +7,8 @@ import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Assignment from "./pages/Assignment";
 import AssignmentDetail from "./pages/AssignmentDetail";
+import TeacherAssignments from "./pages/TeacherAssignments";
+import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
 
 function App() {
   return (
@@ -59,6 +61,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/assignments" element={<ProtectedRoute><TeacherAssignments /></ProtectedRoute>} />
+          <Route path="/assignments/:id" element={<ProtectedRoute><TeacherAssignmentDetail /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

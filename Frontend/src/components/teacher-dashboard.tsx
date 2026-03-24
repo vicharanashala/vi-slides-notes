@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { BookOpen } from "lucide-react";
 import { AssignmentsCard } from "./assignments-card";
+import { useNavigate } from "react-router-dom";
 
 export default function TeacherDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [sessionTitle, setSessionTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);

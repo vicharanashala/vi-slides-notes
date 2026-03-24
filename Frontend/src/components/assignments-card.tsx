@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListTodo } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function AssignmentsCard() {
+  const navigate = useNavigate();
+
   return (
     <Card className="border border-foreground/10 bg-card">
       <CardHeader className="pb-3">
@@ -15,7 +18,10 @@ export function AssignmentsCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button className="w-full h-10 text-sm font-semibold border-0">
+        <Button
+          className="w-full h-10 text-sm font-semibold border-0"
+          onClick={() => navigate("/assignments")}
+        >
           <span className="text-gradient">Manage Assignments</span>
         </Button>
       </CardContent>
