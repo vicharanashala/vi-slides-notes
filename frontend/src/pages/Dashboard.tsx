@@ -60,6 +60,15 @@ const Dashboard: React.FC = () => {
                 } catch (err) {
                     console.error('Error fetching past sessions:', err);
                 }
+            } else if (user?.role === 'Teacher') {
+                try {
+                    const response = await sessionService.getTeacherSessions();
+                    if (response.success) {
+                        setPastSessions(response.data);
+                    }
+                } catch (err) {
+                    console.error('Error fetching teacher sessions:', err);
+                }
             }
         };
 
@@ -331,6 +340,64 @@ const Dashboard: React.FC = () => {
                         </>
                     )}
                 </div>
+
+                {/* Teacher Sessions List */}
+                {user?.role?.toLowerCase() === 'teacher' && pastSessions.length > 0 && (
+                    <div className="glass-card" style={{ marginTop: '2rem' }}>
+                        <h3>Your Sessions</h3>
+                        <p className="text-muted mt-1">Manage your created sessions and view their status.</p>
+                        <div style={{ marginTop: '1.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+                            {pastSessions.map((session: any) => (
+                                <div key={session._id} style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '1rem',
+                                    border: '1px solid var(--color-surface)',
+                                    borderRadius: 'var(--radius-md)',
+                                    marginBottom: '0.5rem',
+                                    background: 'rgba(255,255,255,0.02)'
+                                }}>
+                                    <div>
+                                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem' }}>{session.title}</h4>
+                                        <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                            Code: <strong>{session.code}</strong> • 
+                                            Status: <span style={{
+                                                color: session.status === 'active' ? '#10b981' : 
+                                                       session.status === 'ended' ? '#ef4444' : '#f59e0b'
+                                            }}>{session.status.toUpperCase()}</span> • 
+                                            Students: {session.students?.length || 0}
+                                        </p>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                            Created: {new Date(session.createdAt).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        {session.status === 'active' && (
+                                            <button
+                                                onClick={() => navigate(`/session/${session.code}`)}
+                                                className="btn btn-sm"
+                                                style={{ background: 'var(--color-primary)', color: 'white' }}
+                                            >
+                                                Join
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(session.code);
+                                                setToast({ message: `Code ${session.code} copied!`, type: 'info' });
+                                            }}
+                                            className="btn btn-sm"
+                                            style={{ background: 'transparent', border: '1px solid var(--color-surface)' }}
+                                        >
+                                            Copy Code
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Certificates Modal */}
                 {

@@ -10,7 +10,8 @@ import {
     leaveSession,
     getStudentSessions,
     getOrCreateQuerySession,
-    updateQueryUrl
+    updateQueryUrl,
+    getTeacherSessions
 } from '../controllers/sessionController';
 import { protect, authorize } from '../middleware/auth';
 
@@ -37,6 +38,10 @@ router.post(
     ],
     createSession
 );
+
+// @route   GET /api/sessions/teacher
+// @desc    Get all sessions for a teacher
+router.get('/teacher', authorize('Teacher'), getTeacherSessions);
 
 // @route   GET /api/sessions/query-mode
 // @desc    Get or create teacher's query session

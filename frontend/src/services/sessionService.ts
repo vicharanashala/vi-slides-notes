@@ -51,6 +51,18 @@ export const sessionService = {
         return response.data;
     },
 
+    // Get all sessions for a teacher
+    getTeacherSessions: async (): Promise<{ success: boolean; data: Session[]; count: number }> => {
+        const response = await api.get('/sessions/teacher');
+        return response.data;
+    },
+
+    // Get student session history
+    getStudentSessions: async (): Promise<{ success: boolean; data: Session[] }> => {
+        const response = await api.get('/sessions/student/history');
+        return response.data;
+    },
+
     // End a session (Teacher)
     endSession: async (id: string): Promise<{
         success: boolean;

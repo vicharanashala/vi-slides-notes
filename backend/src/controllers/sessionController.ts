@@ -113,6 +113,32 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
     }
 };
 
+// @desc    Get all sessions for a teacher
+// @route   GET /api/sessions/teacher
+// @access  Private (Teacher only)
+export const getTeacherSessions = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const teacherId = req.user?._id;
+
+        const sessions = await Session.find({ teacher: teacherId })
+            .sort({ createdAt: -1 })
+            .populate('students', 'name email')
+            .populate('teacher', 'name email');
+
+        res.status(200).json({
+            success: true,
+            data: sessions,
+            count: sessions.length
+        });
+    } catch (error) {
+        console.error('Get teacher sessions error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error fetching sessions'
+        });
+    }
+};
+
 // @desc    Join a session
 // @route   POST /api/sessions/join
 // @access  Private (Student only)
