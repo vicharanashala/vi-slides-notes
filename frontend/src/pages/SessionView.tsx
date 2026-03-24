@@ -3813,8 +3813,11 @@ const SessionView: React.FC = () => {
               </div>
             </div>
 
-            <Leaderboard students={session.students} />
-
+            <Leaderboard
+              students={session.students.filter(
+                (student) => student._id !== user?.id,
+              )}
+            />
             <div
               className="glass-card"
               style={{ padding: "1rem", marginTop: "1.5rem" }}
