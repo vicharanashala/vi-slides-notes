@@ -78,7 +78,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
             description,
             code,
             teacher: req.user?._id,
-            status: 'active'
+            status: 'inactive'
         });
 
         const baseUrl = getLocalUrl();
@@ -261,6 +261,47 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
             success: false,
             message: 'Server error ending session'
         });
+    }
+};
+
+// @desc    Start a session
+// @route   PATCH /api/sessions/:id/start
+// @access  Private (Teacher only)
+export const startSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            res.status(404).json({ success: false, message: 'Session not found' });
+            return;
+        }
+
+        // Check if user is the teacher of this session
+        if (session.teacher.toString() !== req.user?._id.toString()) {
+            res.status(403).json({ success: false, message: 'Unauthorized to start this session' });
+            return;
+        }
+
+        if (session.status !== 'inactive') {
+            res.status(400).json({ success: false, message: 'Session is not in a state that can be started' });
+            return;
+        }
+
+        session.status = 'active';
+        await session.save();
+
+        // Notify all participants
+        emitToSession(session.code, 'session_status_update', { status: 'active' });
+
+        res.status(200).json({
+            success: true,
+            status: 'active',
+            message: 'Session started successfully'
+        });
+    } catch (error) {
+        console.error('Start session error:', error);
+        res.status(500).json({
+            success: false, message: 'Server error starting session' });
     }
 };
 

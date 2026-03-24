@@ -5,6 +5,7 @@ import {
     joinSession,
     getSessionDetails,
     endSession,
+    startSession,
     getActiveSession,
     pauseSession,
     leaveSession,
@@ -63,6 +64,10 @@ router.get('/:code', getSessionDetails);
 // @route   PATCH /api/sessions/:id/end
 // @desc    End a session (Teacher)
 router.patch('/:id/end', authorize('Teacher'), endSession);
+
+// @route   PATCH /api/sessions/:id/start
+// @desc    Start a session (Teacher)
+router.patch('/:id/start', authorize('Teacher'), startSession);
 
 // @route   PATCH /api/sessions/:id/pause
 // @desc    Pause/Resume a session (Teacher)
