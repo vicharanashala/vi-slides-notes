@@ -2521,7 +2521,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { sessionService, Session } from '../services/sessionService';
 import { questionService, Question } from '../services/questionService';
 import { socketService } from '../services/socketService';
-import QuestionInput from '../components/QuestionInput';
+import StudentQuestionInput from '../components/StudentQuestionInput';
 import QuestionCard from '../components/QuestionCard';
 import PollCreator from '../components/PollCreator';
 import PollCard from '../components/PollCard';
@@ -3322,7 +3322,7 @@ const SessionView: React.FC = () => {
                         {user?.role?.toLowerCase() === 'student' && (
                             <div style={{ marginBottom: '1rem' }}>
                                 <EngagementControls sessionCode={code || ''} user={user} />
-                                <QuestionInput sessionId={session?._id || ''} sessionStatus={session?.status || 'active'} />
+                                <StudentQuestionInput sessionId={session?._id || ''} sessionStatus={session?.status || 'active'} />
                             </div>
                         )}
                     </div>
