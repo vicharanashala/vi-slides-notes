@@ -2544,6 +2544,7 @@ const SessionView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showEndModal, setShowEndModal] = useState(false);
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [isEnding, setIsEnding] = useState(false);
     const [activePoll, setActivePoll] = useState<Poll | null>(null);
     const [showPollCreator, setShowPollCreator] = useState(false);
@@ -2554,6 +2555,7 @@ const SessionView: React.FC = () => {
     const [pulseCheckClicked, setPulseCheckClicked] = useState(false);
     const [pulseCheckTimer, setPulseCheckTimer] = useState(10);
     const [showConfetti, setShowConfetti] = useState(false);
+    const [handRaisedMap, setHandRaisedMap] = useState<Map<string, any>>(new Map());
 
     // New State for 3-Column Layout
     const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
@@ -2728,6 +2730,30 @@ const SessionView: React.FC = () => {
                         }
                     });
 
+                    socketService.onTeacherHandRaise((data) => {
+                        console.log("✋ Hand raise event:", data);
+
+                        // ✅ Update UI
+                        setHandRaisedMap((prev) => {
+                            const newMap = new Map(prev);
+
+                            if (data.isRaised) {
+                                newMap.set(data.user._id, {
+                                    user: data.user,
+                                    socketId: data.user._id
+                                });
+
+                                setToast({
+                                message: `${data.user.name} raised hand ✋`,
+                                type: 'info'
+                            });
+                            } else {
+                                newMap.delete(data.user._id);
+                            }
+
+                            return newMap;
+                        });
+                    });
                     // Points/Leaderboard Updates
                     socketService.onPointsUpdated((data) => {
                         console.log('🏆 Points updated:', data);
@@ -2997,6 +3023,7 @@ const SessionView: React.FC = () => {
 
 
     return (
+        <>
         <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
             {/* Session Header */}
             <nav style={{
@@ -3169,7 +3196,10 @@ const SessionView: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleLeaveSession} className="btn btn-secondary">
+                        <button 
+                            onClick={() => setShowLeaveModal(true)} 
+                            className="btn btn-secondary"
+                        >
                             Leave
                         </button>
                     )}
@@ -3365,7 +3395,9 @@ const SessionView: React.FC = () => {
                                 >
                                     ×
                                 </button>
-                                <EngagementTeacherView />
+                                <EngagementTeacherView 
+                                    handRaisedMap={handRaisedMap}
+                                />
                             </div>
                         </div>
                     )}
@@ -3475,7 +3507,10 @@ const SessionView: React.FC = () => {
                             </div>
                         </div>
 
-                        <Leaderboard students={session.students} />
+                        <Leaderboard 
+                            students={session.students} 
+                            teacherId={session.teacher?._id}
+                        />
 
                         <div className="glass-card" style={{ padding: '1rem', marginTop: '1.5rem' }}>
                             <h4 className="mb-2">Participants ({session.students.length})</h4>
@@ -3761,6 +3796,55 @@ const SessionView: React.FC = () => {
                 </div>
             )}
         </div >
+        {showLeaveModal && (
+            <div 
+                className="modal-overlay"
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}
+            >
+                <div className="modal-content glass-card" style={{ padding: '2rem', textAlign: 'center' }}>
+                    
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
+                    
+                    <h3>Leave Session?</h3>
+                    <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+                        Are you sure you want to leave the session? You may lose progress.
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                        
+                        <button 
+                            className="btn btn-secondary"
+                            onClick={() => setShowLeaveModal(false)}
+                        >
+                            Cancel
+                        </button>
+
+                        <button 
+                            className="btn btn-danger"
+                            onClick={() => {
+                                setShowLeaveModal(false);
+                                handleLeaveSession();
+                            }}
+                        >
+                            Leave
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 
