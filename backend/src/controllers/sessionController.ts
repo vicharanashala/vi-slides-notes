@@ -6,19 +6,23 @@ import { generateMoodSummary } from '../services/aiService';
 import QRCode from 'qrcode';
 import os from 'os';
 
+/**
+ * Helper to determine the best local or public URL for QR code generation.
+ * This ensures the QR code points to the correct network address.
+ */
 const getLocalUrl = (): string => {
-    // 1. High priority: Explicit PUBLIC_URL (ngrok, tunnel, domain)
+    // High priority: Explicit PUBLIC_URL (e.g., ngrok, tunnel, domain)
     if (process.env.PUBLIC_URL) {
-        return process.env.PUBLIC_URL.replace(/\/$/, ''); // Remove trailing slash
+        return process.env.PUBLIC_URL.replace(/\/$/, '');
     }
 
-    // 2. Medium priority: FRONTEND_URL if it's not localhost
+    // Medium priority: FRONTEND_URL if it's not localhost
     const envUrl = process.env.FRONTEND_URL;
     if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
         return envUrl.replace(/\/$/, '');
     }
 
-    // 3. Fallback: Detect Local Network IP (for same-WiFi usage)
+    // Fallback: Detect Local Network IP (for same-WiFi usage)
     const interfaces = os.networkInterfaces();
     let detectedIp = '';
 
@@ -27,10 +31,7 @@ const getLocalUrl = (): string => {
         if (!ifaceList) continue;
 
         for (const iface of ifaceList) {
-            // Skip internal (loopback) and non-IPv4 addresses
             if (iface.internal || iface.family !== 'IPv4') continue;
-
-            // Prioritize common private networks
             if (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')) {
                 return `http://${iface.address}:5173`;
             }
@@ -42,122 +43,161 @@ const getLocalUrl = (): string => {
         return `http://${detectedIp}:5173`;
     }
 
-    // 4. Ultimate Fallback: Default Localhost
+    // Ultimate Fallback: Default Localhost
     return envUrl || 'http://localhost:5173';
 };
 
-// Helper to generate a unique 6-character code
+/**
+ * Helper to generate a unique 6-character alphanumeric session code.
+ */
 const generateSessionCode = (length: number = 6): string => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < length; i++) {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return result;
 };
 
-// @desc    Create a new session
-// @route   POST /api/sessions
-// @access  Private (Teacher only)
+// SESSION CONTROLLERS
+
+/**
+ // @desc    Create a new session
+ // @route   POST /api/sessions
+ // @access  Private (Teacher only)
+ */
 export const createSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const { title, description } = req.body;
 
-        // Generate unique code
+        // Ensure teacher is authenticated
+        if (!req.user?._id) {
+            res.status(401).json({ success: false, message: 'Unauthorized. Teacher ID missing.' });
+            return;
+        }
+
+        // Generate a strictly unique 6-character code
         let code = generateSessionCode();
         let codeExists = await Session.findOne({ code });
 
-        // Ensure uniqueness
         while (codeExists) {
             code = generateSessionCode();
             codeExists = await Session.findOne({ code });
         }
 
+        // Initialize the session in the database
         const session = await Session.create({
             title,
             description,
             code,
-            teacher: req.user?._id,
-            status: 'active'
+            teacher: req.user._id,
+            status: 'active',
+            students: [],
+            attendance: []
         });
 
+        // Generate Join URL and QR Code
         const baseUrl = getLocalUrl();
         const joinUrl = `${baseUrl}/join/${code}`;
+        
         try {
             const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
                 width: 300,
                 margin: 2,
-                color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
-                }
+                color: { dark: '#6366f1', light: '#ffffff' }
             });
             session.qrCodeDataUrl = qrCodeDataUrl;
             session.joinUrl = joinUrl;
             await session.save();
         } catch (qrError) {
             console.error('QR code generation error:', qrError);
-            // Continue even if QR generation fails
+            // We continue even if QR generation fails; the session code still works
         }
 
-        res.status(201).json({
-            success: true,
-            data: session
-        });
+        res.status(201).json({ success: true, data: session });
     } catch (error) {
         console.error('Create session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during session creation'
-        });
+        res.status(500).json({ success: false, message: 'Server error during session creation' });
     }
 };
 
-// @desc    Join a session
-// @route   POST /api/sessions/join
-// @access  Private (Student only)
+/**
+ // @desc    Join a session using a 6-character code
+ // @route   POST /api/sessions/join
+ // @access  Private (Registered Students only)
+ */
 export const joinSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const { code } = req.body;
+        const user = req.user;
 
-        if (!code) {
-            res.status(400).json({ success: false, message: 'Please provide a session code' });
+        // Validate Input and User
+        if (!code || typeof code !== 'string') {
+            res.status(400).json({ success: false, message: 'Please provide a valid session code' });
             return;
         }
 
-        const session = await Session.findOne({ code: code.toUpperCase(), status: 'active' });
+        if (!user || !user._id) {
+            res.status(401).json({ success: false, message: 'Unauthorized. User information missing.' });
+            return;
+        }
+
+        const cleanCode = code.trim().toUpperCase();
+
+        // Find Session (Allow joining both 'active' and 'paused' sessions)
+        const session = await Session.findOne({ 
+            code: cleanCode, 
+            status: { $in: ['active', 'paused'] } 
+        });
 
         if (!session) {
-            res.status(404).json({
-                success: false,
-                message: 'Active session not found with this code'
-            });
+            res.status(404).json({ success: false, message: 'Session not found or has ended' });
             return;
         }
 
-        // Add student to session if not already added
-        const studentId = req.user?._id;
-        if (studentId && !session.students.includes(studentId)) {
+        const studentId = user._id;
+        const isAlreadyJoined = session.students.includes(studentId);
+
+        // Handle Idempotent Join & Attendance Tracking
+        if (!isAlreadyJoined) {
+            // Add to active students list
             session.students.push(studentId);
+            
+            // Record attendance for reporting
+            session.attendance.push({
+                student: studentId,
+                name: user.name || 'Unknown Student',
+                email: user.email || 'Unknown Email',
+                joinTime: new Date()
+            });
+
             await session.save();
+
+            // Emit real-time event to update the teacher's dashboard
+            emitToSession(session.code, 'student_joined', {
+                studentId,
+                name: user.name,
+                joinTime: new Date(),
+                totalStudents: session.students.length
+            });
         }
 
         res.status(200).json({
             success: true,
+            message: isAlreadyJoined ? 'Re-joined session successfully' : 'Joined session successfully',
             data: session
         });
     } catch (error) {
         console.error('Join session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during joining session'
-        });
+        res.status(500).json({ success: false, message: 'Server error during joining session' });
     }
 };
 
-// @desc    Get session details by code
-// @route   GET /api/sessions/:code
-// @access  Private
+/**
+ // @desc    Get session details by code
+ // @route   GET /api/sessions/:code
+ // @access  Private
+ */
 export const getSessionDetails = async (req: Request, res: Response): Promise<void> => {
     try {
         const { code } = req.params;
@@ -166,52 +206,42 @@ export const getSessionDetails = async (req: Request, res: Response): Promise<vo
             .populate('students', 'name email');
 
         if (!session) {
-            res.status(404).json({
-                success: false,
-                message: 'Session not found'
-            });
+            res.status(404).json({ success: false, message: 'Session not found' });
             return;
         }
 
-        if (session) {
-            const baseUrl = getLocalUrl();
-            // If the current detected base URL is public but the session's joinUrl is local/localhost,
-            // refresh it so the QR code matches the current tunnel/domain.
-            if (!baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1') &&
-                (!session.joinUrl || session.joinUrl.includes('localhost') || session.joinUrl.includes('127.0.0.1'))) {
+        // Auto-refresh QR code if network environment changed (e.g., dev switched networks)
+        const baseUrl = getLocalUrl();
+        if (!baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1') &&
+            (!session.joinUrl || session.joinUrl.includes('localhost') || session.joinUrl.includes('127.0.0.1'))) {
 
-                const joinUrl = session.isQuerySession ? `${baseUrl}/ask/${session.code}` : `${baseUrl}/join/${session.code}`;
-                try {
-                    const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
-                        width: 300,
-                        margin: 2,
-                        color: { dark: '#6366f1', light: '#ffffff' }
-                    });
-                    session.qrCodeDataUrl = qrCodeDataUrl;
-                    session.joinUrl = joinUrl;
-                    await session.save();
-                } catch (qrError) {
-                    console.error('QR refresh error in getSessionDetails:', qrError);
-                }
+            const joinUrl = session.isQuerySession ? `${baseUrl}/ask/${session.code}` : `${baseUrl}/join/${session.code}`;
+            try {
+                const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
+                    width: 300,
+                    margin: 2,
+                    color: { dark: '#6366f1', light: '#ffffff' }
+                });
+                session.qrCodeDataUrl = qrCodeDataUrl;
+                session.joinUrl = joinUrl;
+                await session.save();
+            } catch (qrError) {
+                console.error('QR refresh error in getSessionDetails:', qrError);
             }
         }
 
-        res.status(200).json({
-            success: true,
-            data: session
-        });
+        res.status(200).json({ success: true, data: session });
     } catch (error) {
         console.error('Get session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching session'
-        });
+        res.status(500).json({ success: false, message: 'Server error fetching session' });
     }
 };
 
-// @desc    End a session
-// @route   PATCH /api/sessions/:id/end
-// @access  Private (Teacher only)
+/**
+ // @desc    End a session and generate an AI mood summary
+ // @route   PATCH /api/sessions/:id/end
+ // @access  Private (Teacher only)
+ */
 export const endSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const session = await Session.findById(req.params.id);
@@ -221,26 +251,25 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        // Check if user is the teacher of this session
+        // Verify authorization
         if (session.teacher.toString() !== req.user?._id.toString()) {
             res.status(403).json({ success: false, message: 'Unauthorized to end this session' });
             return;
         }
 
+        // Mark session as ended
         session.status = 'ended';
         session.endedAt = new Date();
 
-        // 1. Fetch all questions for this session to generate summary
+        // Generate Mood Summary based on all asked questions
         const questions = await Question.find({ session: session._id });
         const questionTexts = questions.map(q => q.content);
-
-        // 2. Generate Mood Summary via AI (Gemini)
-        // Note: This is an async call but we wait for it to store it in the session record
+        
+        // Wait for AI to process the summary before saving
         session.moodSummary = await generateMoodSummary(questionTexts);
-
         await session.save();
 
-        // Notify all participants
+        // Notify all participants the session has ended
         emitToSession(session.code, 'session_status_update', { status: 'ended' });
 
         res.status(200).json({
@@ -250,23 +279,22 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
                 title: session.title,
                 code: session.code,
                 questionCount: questions.length,
-                duration: Math.round((session.endedAt.getTime() - session.createdAt.getTime()) / 60000), // duration in minutes
+                duration: Math.round((session.endedAt.getTime() - session.createdAt.getTime()) / 60000), // in minutes
                 moodSummary: session.moodSummary
             },
             message: 'Session ended successfully'
         });
     } catch (error) {
         console.error('End session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error ending session'
-        });
+        res.status(500).json({ success: false, message: 'Server error ending session' });
     }
 };
 
-// @desc    Pause or Resume a session
-// @route   PATCH /api/sessions/:id/pause
-// @access  Private (Teacher only)
+/**
+ // @desc    Pause or Resume a session
+ // @route   PATCH /api/sessions/:id/pause
+ // @access  Private (Teacher only)
+ */
 export const pauseSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const session = await Session.findById(req.params.id);
@@ -276,7 +304,6 @@ export const pauseSession = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        // Check if user is the teacher of this session
         if (session.teacher.toString() !== req.user?._id.toString()) {
             res.status(403).json({ success: false, message: 'Unauthorized to control this session' });
             return;
@@ -287,7 +314,7 @@ export const pauseSession = async (req: Request, res: Response): Promise<void> =
         session.status = newStatus;
         await session.save();
 
-        // Notify all participants
+        // Notify participants to freeze/unfreeze their UI
         emitToSession(session.code, 'session_status_update', { status: newStatus });
 
         res.status(200).json({
@@ -297,16 +324,15 @@ export const pauseSession = async (req: Request, res: Response): Promise<void> =
         });
     } catch (error) {
         console.error('Pause session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error toggling session pause'
-        });
+        res.status(500).json({ success: false, message: 'Server error toggling session pause' });
     }
 };
 
-// @desc    Leave a session
-// @route   POST /api/sessions/:code/leave
-// @access  Private
+/**
+ // @desc    Leave a session (Records leave time for attendance)
+ // @route   POST /api/sessions/:code/leave
+ // @access  Private
+ */
 export const leaveSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const { code } = req.params;
@@ -318,91 +344,99 @@ export const leaveSession = async (req: Request, res: Response): Promise<void> =
         }
 
         const userId = req.user?._id;
+        
         if (userId) {
-            // Remove user from students array
+            // Remove user from the active 'students' list
             session.students = session.students.filter(id => id.toString() !== userId.toString()) as any;
+            
+            //  Find their latest attendance record and mark their leave time
+            // We reverse slice to find the *most recent* time they joined in case they joined/left multiple times
+            const attendanceRecord = session.attendance
+                .slice()
+                .reverse()
+                .find(record => record.student.toString() === userId.toString() && !record.leaveTime);
+
+            if (attendanceRecord) {
+                attendanceRecord.leaveTime = new Date();
+            }
+
             await session.save();
+
+            //  Update the teacher's UI
+            emitToSession(session.code, 'student_left', {
+                studentId: userId,
+                totalStudents: session.students.length
+            });
         }
 
-        res.status(200).json({
-            success: true,
-            message: 'Left session successfully'
-        });
+        res.status(200).json({ success: true, message: 'Left session successfully' });
     } catch (error) {
         console.error('Leave session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error leaving session'
-        });
+        res.status(500).json({ success: false, message: 'Server error leaving session' });
     }
 };
 
-// @desc    Get active session for user
-// @route   GET /api/sessions/current/active
-// @access  Private
+/**
+ // @desc    Get active session for user
+ // @route   GET /api/sessions/current/active
+ // @access  Private
+ */
 export const getActiveSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?._id;
         let session;
 
+        // Teachers see sessions they own; Students see sessions they are actively in
         if (req.user?.role === 'Teacher') {
             session = await Session.findOne({ teacher: userId, status: { $in: ['active', 'paused'] } });
         } else {
             session = await Session.findOne({ students: userId, status: { $in: ['active', 'paused'] } });
         }
 
-        res.status(200).json({
-            success: true,
-            data: session || null
-        });
+        res.status(200).json({ success: true, data: session || null });
     } catch (error) {
         console.error('Get active session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching active session'
-        });
+        res.status(500).json({ success: false, message: 'Server error fetching active session' });
     }
 };
 
-// @desc    Get all sessions a student has joined (for certificates)
-// @route   GET /api/sessions/student/history
-// @access  Private
+/**
+ // @desc    Get all sessions a student has joined (Used for displaying certificates)
+ // @route   GET /api/sessions/student/history
+ // @access  Private
+ */
 export const getStudentSessions = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?._id;
 
-        // Find sessions where student is in participants list
+        // We check the attendance array directly to ensure we catch sessions they joined even if they left before it ended
         const sessions = await Session.find({
-            students: userId
+            'attendance.student': userId
         })
             .populate('teacher', 'name')
             .sort({ createdAt: -1 });
 
-        res.status(200).json({
-            success: true,
-            data: sessions
-        });
+        res.status(200).json({ success: true, data: sessions });
     } catch (error) {
         console.error('Get student sessions error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching student sessions'
-        });
+        res.status(500).json({ success: false, message: 'Server error fetching student sessions' });
     }
 };
-// @desc    Get or create a teacher's persistent query session
-// @route   GET /api/sessions/query-mode
-// @access  Private (Teacher only)
+
+/**
+ // @desc    Get or create a teacher's persistent query session
+ // @route   GET /api/sessions/query-mode
+ // @access  Private (Teacher only)
+ */
 export const getOrCreateQuerySession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?._id;
-
-        // Find existing query session for this teacher
-        let session = await Session.findOne({ teacher: userId, isQuerySession: true });
-
         const baseUrl = getLocalUrl();
 
-        // If session exists but has localhost URL, refresh it
+        // Find existing query session
+        let session = await Session.findOne({ teacher: userId, isQuerySession: true });
+
+        // If session exists but has localhost URL, refresh it for network use
         if (session && session.joinUrl?.includes('localhost') && !baseUrl.includes('localhost')) {
             const askUrl = `${baseUrl}/ask/${session.code}`;
             const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
@@ -415,8 +449,8 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
             await session.save();
         }
 
+        // Create new if it doesn't exist
         if (!session) {
-            // Create a new persistent query session
             let code = generateSessionCode();
             let codeExists = await Session.findOne({ code });
 
@@ -425,45 +459,36 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
                 codeExists = await Session.findOne({ code });
             }
 
+            const askUrl = `${baseUrl}/ask/${code}`;
+            const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
+                width: 300,
+                margin: 2,
+                color: { dark: '#6366f1', light: '#ffffff' }
+            });
+
             session = await Session.create({
                 title: `${req.user?.name}'s Query Mode`,
                 code,
                 teacher: userId,
                 status: 'active',
-                isQuerySession: true
+                isQuerySession: true,
+                joinUrl: askUrl,
+                qrCodeDataUrl
             });
-
-            const askUrl = `${baseUrl}/ask/${code}`;
-            const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
-                width: 300,
-                margin: 2,
-                color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
-                }
-            });
-
-            session.qrCodeDataUrl = qrCodeDataUrl;
-            session.joinUrl = askUrl;
-            await session.save();
         }
 
-        res.status(200).json({
-            success: true,
-            data: session
-        });
+        res.status(200).json({ success: true, data: session });
     } catch (error) {
         console.error('Get/Create query session error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error handling query session'
-        });
+        res.status(500).json({ success: false, message: 'Server error handling query session' });
     }
 };
 
-// @desc    Update custom query URL
-// @route   PATCH /api/sessions/query-mode/url
-// @access  Private (Teacher only)
+/**
+ * @desc    Update custom query URL
+ * @route   PATCH /api/sessions/query-mode/url
+ * @access  Private (Teacher only)
+ */
 export const updateQueryUrl = async (req: Request, res: Response): Promise<void> => {
     try {
         const { url } = req.body;
@@ -486,9 +511,6 @@ export const updateQueryUrl = async (req: Request, res: Response): Promise<void>
         });
     } catch (error) {
         console.error('Update query URL error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error updating query URL'
-        });
+        res.status(500).json({ success: false, message: 'Server error updating query URL' });
     }
 };
