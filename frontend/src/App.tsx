@@ -12,6 +12,7 @@ import AssignmentDetails from './pages/AssignmentDetails';
 import GuestJoinForm from './pages/GuestJoinForm';
 import QueryPPTView from './pages/QueryPPTView';
 import QueryAsk from './pages/QueryAsk';
+import JoinEntryPage from './pages/JoinEntryPage.tsx';
 
 const App: React.FC = () => {
     return (
@@ -20,8 +21,9 @@ const App: React.FC = () => {
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/join/:code" element={<JoinEntryPage />} />
                     {/* Public route for guest join and query ask */}
-                    <Route path="/join/:code" element={<GuestJoinForm />} />
+                    <Route path="/guest/:code" element={<GuestJoinForm />} />
                     <Route path="/ask/:code" element={<QueryAsk />} />
                     <Route
                         path="/dashboard"
