@@ -167,3 +167,6 @@ export const joinClass = (classCode: string) =>
 
 export const getClassById = (id: string) =>
   api.get<GetClassResponse>(`/class/${id}`);
+
+export const getClassByCode = (code: string) =>
+  api.get<GetClassResponse>(`/class/code/${code}`);

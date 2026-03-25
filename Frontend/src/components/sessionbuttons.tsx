@@ -6,7 +6,6 @@ import {
   Presentation,
   FileDown,
   Vote,
-  LogOut,
 } from "lucide-react";
 
 type ButtonProps = {

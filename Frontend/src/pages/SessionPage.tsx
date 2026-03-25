@@ -9,6 +9,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import type { GetClassResponse } from "@/lib/api";
 import { getClassById } from "@/lib/api";
 
+import { getSocket } from "@/lib/socket";
+
 const SessionPage = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
@@ -27,14 +29,11 @@ const SessionPage = () => {
         const res = await getClassById(classId);
         setClassData(res.data);
 
-        // Optional: redirect if class is not live
         if (!res.data.isLive) {
           alert("Session has ended");
           navigate("/dashboard");
         }
-
       } catch (err: any) {
-        console.error("Failed to fetch class:", err);
         setError(err?.response?.data?.message || "Failed to load session");
       } finally {
         setLoading(false);
@@ -44,7 +43,44 @@ const SessionPage = () => {
     fetchClass();
   }, [classId, navigate]);
 
-  // Loading UI
+useEffect(() => {
+  if (!classId) return;
+
+  const socket = getSocket();
+
+  const handleUserJoined = (data: { userId: string }) => console.log("User joined:", data.userId);
+  const handleUserLeft = (data: { userId: string }) => console.log("User left:", data.userId);
+  const handleClassStarted = () => console.log("Class started");
+  const handleClassEnded = () => {
+    alert("Session ended by instructor");
+    navigate("/dashboard");
+  };
+
+  const joinRoom = () => {
+    socket.emit("join_class_room", { classId });
+  };
+
+  socket.on("user_joined", handleUserJoined);
+  socket.on("user_left", handleUserLeft);
+  socket.on("class_started", handleClassStarted);
+  socket.on("class_ended", handleClassEnded);
+
+  if (socket.connected) {
+    joinRoom();
+  } else {
+    socket.once("connect", joinRoom);
+    
+  }
+
+  return () => {
+    socket.off("user_joined", handleUserJoined);
+    socket.off("user_left", handleUserLeft);
+    socket.off("class_started", handleClassStarted);
+    socket.off("class_ended", handleClassEnded);
+    socket.off("connect", joinRoom);
+  };
+}, [classId, navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-dvh">
@@ -53,7 +89,6 @@ const SessionPage = () => {
     );
   }
 
-  // Error UI
   if (error || !classData) {
     return (
       <div className="flex items-center justify-center min-h-dvh text-muted-foreground">
@@ -64,13 +99,6 @@ const SessionPage = () => {
 
   return (
     <SidebarProvider>
-
-      {/* SIDEBAR */}
-      {/* 
-        TODO: Replace with real-time questions (WebSocket/API)
-        - live student questions
-        - upvotes / priority
-      */}
       <AppSidebar
         questions={[
           { id: "1", title: "What is probability?" },
@@ -80,22 +108,19 @@ const SessionPage = () => {
         onSelect={(id) => console.log(id)}
       />
 
-      {/* MAIN */}
       <SidebarInset className="bg-transparent">
         <div className="min-h-screen flex flex-col">
-
-          {/* TOPBAR */}
           <Topbar
             sessionName={classData.title}
             code={classData.classCode}
             classId={classData._id}
           />
 
-          {/* CONTENT */}
           <div className="flex-1 p-6">
             <Card className="h-full card-glass p-6">
-
-              {/* 
+              <p className="text-muted-foreground">
+                Question Content Here
+                {/* 
                 FEATURE: Role-based Question Interaction UI
 
                 Instructor View:
@@ -107,14 +132,9 @@ const SessionPage = () => {
                 - Ask question
                 - Edit/Delete own question
               */}
-
-              <p className="text-muted-foreground">
-                Question Content Here
               </p>
-
             </Card>
           </div>
-
         </div>
       </SidebarInset>
     </SidebarProvider>

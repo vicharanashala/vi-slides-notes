@@ -10,6 +10,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { joinClass } from "@/lib/api";
 
 export function CertificatesCard() {
   return (
@@ -44,9 +46,7 @@ export function AssignmentsCard() {
           <ClipboardList className="w-5 h-5 text-accent" />
           Assignments
         </CardTitle>
-        <CardDescription>
-          View and submit your assignments.
-        </CardDescription>
+        <CardDescription>View and submit your assignments.</CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col flex-1 justify-between pt-0 pb-4 px-6">
@@ -63,9 +63,38 @@ export function AssignmentsCard() {
 }
 
 export function JoinSessionCard() {
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleJoin = async () => {
+    if (!code.trim()) {
+      alert("Enter session code");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await joinClass(code.trim());
+
+      const classId = res.data?.classId;
+
+      if (!classId) {
+        throw new Error("Invalid session");
+      }
+
+      // Navigate → SessionPage handles socket
+      navigate(`/session/${classId}`);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Invalid session code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="shadow-xl h-full flex flex-col hover:scale-[1.02] transition-all duration-300">
-      
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-bold text-gradient">
           Join Session
@@ -76,8 +105,6 @@ export function JoinSessionCard() {
       </CardHeader>
 
       <CardContent className="flex flex-col flex-1 justify-between pt-0 pb-4 px-6">
-        
-        {/* Top content */}
         <div className="flex flex-col gap-4">
           <div className="grid gap-2">
             <Label htmlFor="code">Session Code</Label>
@@ -85,15 +112,22 @@ export function JoinSessionCard() {
               id="code"
               placeholder="E.G. AB1234"
               maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              disabled={loading}
             />
           </div>
         </div>
 
-        {/* Bottom button */}
-        <Button className="w-full h-11 text-base font-medium mt-6">
-          <span className="text-gradient">Join</span>
+        <Button
+          className="w-full h-11 text-base font-medium mt-6"
+          onClick={handleJoin}
+          disabled={loading}
+        >
+          <span className="text-gradient">
+            {loading ? "Joining..." : "Join"}
+          </span>
         </Button>
-
       </CardContent>
     </Card>
   );

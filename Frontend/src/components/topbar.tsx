@@ -13,6 +13,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { endClass } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { getSocket } from "@/lib/socket";
 type TopbarProps = {
   sessionName: string;
   code: string;
@@ -20,17 +21,31 @@ type TopbarProps = {
 };
 
 export const Topbar = ({ sessionName, code, classId }: TopbarProps) => {
-  const{ user}=useAuth();
+  const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const navigate = useNavigate();
 
-const handleEndSession = async () => {
+  const handleEndSession = async () => {
+    try {
+      const socket = getSocket();
+      await endClass(classId);
+
+      socket.emit("end_class", { classId });
+
+      setTimeout(() => navigate("/dashboard"), 300);
+    } catch (err: any) {
+      console.error("Failed to end session:", err);
+      alert(err?.response?.data?.message || "Failed to end session");
+    }
+  };
+
+  const handleLeaveSession = async () => {
   try {
-    await endClass(classId);
-    navigate("/dashboard"); // redirect after ending
+    const socket = getSocket();
+    socket.disconnect();
+    navigate("/dashboard");
   } catch (err: any) {
-    console.error("Failed to end session:", err);
-    alert(err?.response?.data?.message || "Failed to end session");
+    console.error("Failed to leave session:", err);
   }
 };
   return (
@@ -60,19 +75,23 @@ const handleEndSession = async () => {
       </div>
 
       {/* ACTIONS */}
-      {isInstructor &&(<div className="flex flex-wrap items-center gap-2 justify-center sm:justify-end w-full sm:w-auto">
-        <ExportButton />
-        <PauseButton />
-        <EngagementButton />
-        <PulseButton />
-        <PollButton />
-        <WhiteboardButton />
-      </div>)}
-      
+      {isInstructor && (
+        <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-end w-full sm:w-auto">
+          <ExportButton />
+          <PauseButton />
+          <EngagementButton />
+          <PulseButton />
+          <PollButton />
+          <WhiteboardButton />
+        </div>
+      )}
 
       {/* END */}
-      {isInstructor?(<EndSessionButton onClick={handleEndSession}/>):(<LeaveButton/>)}
-
+      {isInstructor ? (
+        <EndSessionButton onClick={handleEndSession} />
+      ) : (
+        <LeaveButton onClick={handleLeaveSession}/>
+      )}
     </div>
   );
 };
