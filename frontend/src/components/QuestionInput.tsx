@@ -13,6 +13,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [isListening, setIsListening] = useState(false);
+    const [isAnonymous, setIsAnonymous] = useState(false);
 
     const handleVoiceInput = () => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -70,11 +71,13 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
             const response = await questionService.createQuestion({
                 content: content.trim(),
                 sessionId,
-                isDirectToTeacher: true // Always send to teacher first
+                isDirectToTeacher: true,
+                isAnonymous
             });
 
             if (response.success) {
-                setContent(''); // Clear UI immediately
+                setContent('');
+                setIsAnonymous(false);
                 if (onQuestionSubmitted) {
                     onQuestionSubmitted(response.data);
                 }
@@ -145,7 +148,18 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
 
                 {error && <span className="form-error mb-2">{error}</span>}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-secondary)', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input 
+                            type="checkbox" 
+                            checked={isAnonymous} 
+                            onChange={(e) => setIsAnonymous(e.target.checked)}
+                            disabled={loading || isPaused}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        Ask anonymously
+                    </label>
+
                     <button
                         type="submit"
                         className="btn btn-primary"
