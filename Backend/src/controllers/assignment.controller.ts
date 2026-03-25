@@ -165,3 +165,28 @@ export const submitAssignment = async (
     res.status(500).json({ message: "Server error" });
   }
 };
+//Get all submissions
+export const getAllSubmissions = async (
+  _req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const assignments = await assignmentModel
+      .find()
+      .populate("submissions.student", "fullname email")
+      .select("title submissions");
+
+    const allSubmissions = assignments.flatMap((assignment) =>
+      assignment.submissions.map((submission) => ({
+        assignmentTitle: assignment.title,
+        student: submission.student,
+        fileUrl: submission.fileUrl,
+        submittedAt: submission.submittedAt,
+      }))
+    );
+
+    res.status(200).json({ submissions: allSubmissions });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
