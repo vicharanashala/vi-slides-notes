@@ -34,6 +34,7 @@ export interface CreateQuestionData {
     content: string;
     sessionId: string;
     isDirectToTeacher?: boolean;
+    isAnonymous?: boolean;
 }
 
 export const questionService = {
