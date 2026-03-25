@@ -2,6 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import {
     createSession,
+    sendTestSessionInvitation,
     joinSession,
     getSessionDetails,
     endSession,
@@ -26,6 +27,10 @@ router.get('/current/active', getActiveSession);
 // @route   GET /api/sessions/student/history
 // @desc    Get student session history
 router.get('/student/history', getStudentSessions);
+
+// @route   POST /api/sessions/test-email
+// @desc    Send a test session invitation email (Teacher)
+router.post('/test-email', authorize('Teacher'), sendTestSessionInvitation);
 
 // @route   POST /api/sessions
 // @desc    Create a session (Teacher)

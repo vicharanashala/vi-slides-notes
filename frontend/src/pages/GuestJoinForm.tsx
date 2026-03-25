@@ -88,7 +88,7 @@ const GuestJoinForm: React.FC = () => {
         <div style={{ minHeight: '100vh', background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <div className="glass-card fade-in" style={{ maxWidth: '350px', width: '100%', padding: '1.5rem', borderRadius: '12px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                    <h2 style={{ fontSize: '1.2rem', marginBottom: '0.2rem' }}>Ask a Question</h2>
+                    <h2 style={{ fontSize: '1.2rem', marginBottom: '0.2rem' }}>Join Session</h2>
                     {sessionTitle && (
                         <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                             to {sessionTitle}
