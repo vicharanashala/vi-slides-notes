@@ -65,6 +65,7 @@ export function AssignmentsCard() {
 export function JoinSessionCard() {
   return (
     <Card className="shadow-xl h-full flex flex-col hover:scale-[1.02] transition-all duration-300">
+      
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-bold text-gradient">
           Join Session
@@ -75,6 +76,8 @@ export function JoinSessionCard() {
       </CardHeader>
 
       <CardContent className="flex flex-col flex-1 justify-between pt-0 pb-4 px-6">
+        
+        {/* Top content */}
         <div className="flex flex-col gap-4">
           <div className="grid gap-2">
             <Label htmlFor="code">Session Code</Label>
@@ -86,9 +89,11 @@ export function JoinSessionCard() {
           </div>
         </div>
 
-        <Button className="w-full h-11 text-base font-medium">
+        {/* Bottom button */}
+        <Button className="w-full h-11 text-base font-medium mt-6">
           <span className="text-gradient">Join</span>
         </Button>
+
       </CardContent>
     </Card>
   );

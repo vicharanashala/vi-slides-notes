@@ -166,7 +166,7 @@
         outline: none !important;
     }
 
-    /* ✅ Dark mode inputs — restore glass look */
+    /* Dark mode inputs — restore glass look */
     .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
     .dark textarea,
     .dark select {
@@ -326,4 +326,39 @@
 
 .input-glass:focus {
     @apply ring-2 ring-primary/50;
+}
+/* ── Glass Sidebar Override ───────────────────────────── */
+[data-sidebar="sidebar"] {
+    background: rgba(255, 255, 255, 0.10) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.20) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* remove ALL inner backgrounds */
+[data-sidebar="sidebar"] * {
+    background: transparent !important;
+}
+.dark [data-sidebar="sidebar"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+/* Sidebar menu buttons */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+/* Hover */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"]:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Active */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"][data-active="true"] {
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(8px);
 }

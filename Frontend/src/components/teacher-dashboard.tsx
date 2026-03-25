@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { BookOpen } from "lucide-react";
 import { AssignmentsCard } from "./assignments-card";
 import { useNavigate } from "react-router-dom";
+import { createClass, startClass } from "@/lib/api";
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
@@ -14,23 +21,47 @@ export default function TeacherDashboard() {
   const [sessionTitle, setSessionTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sessionTitle.trim()) {
-      alert("Please enter a session title");
-      return;
-    }
-    setIsCreating(true);
-    try {
-      // API call to create session could go here
-      setSessionTitle("");
-    } catch (error) {
-      console.error("Failed to create session:", error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
+const handleCreateSession = async (e: React.FormEvent) => {
+  e.preventDefault();
 
+  if (isCreating) return;
+
+  if (!sessionTitle.trim()) {
+    alert("Please enter a session title");
+    return;
+  }
+
+  setIsCreating(true);
+
+  try {
+    // 1. Create class
+    const createRes = await createClass(sessionTitle);
+    const newClass = createRes.data?.data;
+
+    if (!newClass?._id) {
+      throw new Error("Invalid class response");
+    }
+
+    // 2. Start class
+    await startClass(newClass._id);
+
+    // 3. Reset + Navigate
+    setSessionTitle("");
+    navigate(`/session/${newClass._id}`);
+
+  } catch (error: any) {
+    console.error("Failed to create session:", error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to start session";
+
+    alert(message);
+  } finally {
+    setIsCreating(false);
+  }
+};
   return (
     // Only control padding and height, let global body handle background!
     <div className="min-h-screen p-6">
