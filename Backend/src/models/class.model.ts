@@ -6,6 +6,7 @@ export interface IClass extends Document {
   instructor: mongoose.Types.ObjectId;
   classCode: string;
   isLive: boolean;
+  participants: mongoose.Types.ObjectId[];
   createdAt: Date;
 }
 
@@ -20,6 +21,9 @@ const classSchema: Schema<IClass> = new Schema(
     },
     classCode: { type: String, required: true, unique: true },
     isLive: { type: Boolean, default: false },
+    participants: [
+      { type: Schema.Types.ObjectId, ref: "user" }
+    ],
   },
   { timestamps: true }
 );

@@ -1,35 +1,40 @@
-// this is for secure mongodb connection for people using mobile hotspot
-// it will use google dns servers instead of the default ones which may not work properly with mobile hotspots
-import dns from 'dns';
+// ------------------- DNS FIX (for MongoDB on hotspot) -------------------
+import dns from "dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// ------------------- ENV CONFIG -------------------
 import dotenv from "dotenv";
-import path from 'path';
+import path from "path";
 
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-
-dotenv.config({ path: path.join(__dirname, '.env') });
-
-
-
-
+// ------------------- IMPORTS -------------------
 import express, { Application, Request, Response } from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
+
 import assignmentRouter from "./routes/assignment.route";
 import classRouter from "./routes/class.route";
-
-import connectDB from "./config/db";
 import authRouter from "./routes/auth.route";
 
-// Load env variables
-dotenv.config();
+import connectDB from "./config/db";
 
+import http from "http";
+import { initSocket } from "./socket/socket";
+
+// ------------------- APP INIT -------------------
 const app: Application = express();
 
-// Connect Database
+// create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.IO with server
+initSocket(server);
+
+// ------------------- DB CONNECTION -------------------
 connectDB();
 
-// CORS configuration
+// ------------------- CORS -------------------
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.CLIENT_URL,
@@ -48,25 +53,25 @@ const corsOptions: CorsOptions = {
   credentials: true,
 };
 
-// Middleware
+// ------------------- MIDDLEWARE -------------------
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Routes
+// ------------------- ROUTES -------------------
 app.use("/api/auth", authRouter);
 app.use("/api/assignments", assignmentRouter);
 app.use("/api/class", classRouter);
 
-// Health check 
+// ------------------- HEALTH CHECK -------------------
 app.get("/", (req: Request, res: Response) => {
   res.send("API is running");
 });
 
-// Start server
+// ------------------- START SERVER -------------------
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server + Socket running on port ${PORT}`);
 });
