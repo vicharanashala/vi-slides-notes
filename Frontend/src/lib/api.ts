@@ -13,9 +13,8 @@ export interface RegisterData {
 }
 export interface UpdateUserData {
   fullname?: string;
-  email?: string;
-  password?: string;
-  role?: string;
+  oldPassword?: string;
+  newPassword?: string;
 }
 export interface User {
   _id: string;
