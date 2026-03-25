@@ -13,12 +13,14 @@ export default function EditProfile() {
 
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     fullname: user?.fullname || "",
     oldPassword: "",
     newPassword: "",
+    confirmPassword: "",
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,14 @@ export default function EditProfile() {
       setError("Both old and new password are required");
       return;
     }
-
+    // Confirm password check
+    if (
+      formData.newPassword &&
+      formData.newPassword !== formData.confirmPassword
+    ) {
+      setError("Passwords do not match");
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -68,6 +77,7 @@ export default function EditProfile() {
         ...prev,
         oldPassword: "",
         newPassword: "",
+        confirmPassword: "",
       }));
     } catch (err: any) {
       setError(err.response?.data?.message || "Something went wrong");
@@ -185,7 +195,36 @@ export default function EditProfile() {
                     </Button>
                 </div>
             </div>
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <Label className="text-sm">Confirm Password</Label>
 
+              <div className="relative flex items-center mt-2">
+                <Input
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  className="h-11 pr-11 text-sm"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 h-9 w-9 text-muted-foreground hover:bg-transparent"
+                  onClick={() =>
+                    setShowConfirmPassword(!showConfirmPassword)
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
             {/* Submit */}
             <Button
               className="w-full h-11 text-sm font-medium"
