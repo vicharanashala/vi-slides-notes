@@ -3,58 +3,10 @@ import Session from '../models/Session';
 import Question from '../models/Question';
 import { emitToSession } from '../config/socket';
 import { generateMoodSummary } from '../services/aiService';
-import QRCode from 'qrcode';
-import os from 'os';
+import { generateSessionCode } from '../utils/generateSessionCode';
+import { generateJoinUrl } from '../utils/urlGenerator';
+import { generateQRCode } from '../utils/qrGenerator';
 
-const getLocalUrl = (): string => {
-    // 1. High priority: Explicit PUBLIC_URL (ngrok, tunnel, domain)
-    if (process.env.PUBLIC_URL) {
-        return process.env.PUBLIC_URL.replace(/\/$/, ''); // Remove trailing slash
-    }
-
-    // 2. Medium priority: FRONTEND_URL if it's not localhost
-    const envUrl = process.env.FRONTEND_URL;
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-        return envUrl.replace(/\/$/, '');
-    }
-
-    // 3. Fallback: Detect Local Network IP (for same-WiFi usage)
-    const interfaces = os.networkInterfaces();
-    let detectedIp = '';
-
-    for (const name of Object.keys(interfaces)) {
-        const ifaceList = interfaces[name];
-        if (!ifaceList) continue;
-
-        for (const iface of ifaceList) {
-            // Skip internal (loopback) and non-IPv4 addresses
-            if (iface.internal || iface.family !== 'IPv4') continue;
-
-            // Prioritize common private networks
-            if (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')) {
-                return `http://${iface.address}:5173`;
-            }
-            detectedIp = iface.address;
-        }
-    }
-
-    if (detectedIp) {
-        return `http://${detectedIp}:5173`;
-    }
-
-    // 4. Ultimate Fallback: Default Localhost
-    return envUrl || 'http://localhost:5173';
-};
-
-// Helper to generate a unique 6-character code
-const generateSessionCode = (length: number = 6): string => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return result;
-};
 
 // @desc    Create a new session
 // @route   POST /api/sessions
@@ -63,46 +15,52 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
     try {
         const { title, description } = req.body;
 
-        // Generate unique code
-        let code = generateSessionCode();
-        let codeExists = await Session.findOne({ code });
+        let session;
+        let isCreated = false;
 
-        // Ensure uniqueness
-        while (codeExists) {
-            code = generateSessionCode();
-            codeExists = await Session.findOne({ code });
-        }
+        while (!isCreated) {
+            try {
+                const code = generateSessionCode();
 
-        const session = await Session.create({
-            title,
-            description,
-            code,
-            teacher: req.user?._id,
-            status: 'active'
-        });
+                session = await Session.create({
+                    title,
+                    description,
+                    code,
+                    teacher: req.user?._id,
+                    status: 'active'
+                });
 
-        const baseUrl = getLocalUrl();
-        const joinUrl = `${baseUrl}/join/${code}`;
-        try {
-            const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
-                width: 300,
-                margin: 2,
-                color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
+                isCreated = true;
+            } catch (err: any) {
+                // Retry only if duplicate key error
+                if (err.code !== 11000) {
+                    throw err;
                 }
-            });
-            session.qrCodeDataUrl = qrCodeDataUrl;
-            session.joinUrl = joinUrl;
-            await session.save();
-        } catch (qrError) {
-            console.error('QR code generation error:', qrError);
-            // Continue even if QR generation fails
+            }
         }
 
+        // Safety check (TypeScript fix)
+        if (!session) {
+            throw new Error('Session creation failed');
+        }
+
+        const joinUrl = generateJoinUrl(session.code);
+        const qrCodeDataUrl = await generateQRCode(joinUrl);
+
+        await Session.updateOne(
+            { _id: session._id },
+            {
+                $set: {
+                    joinUrl,
+                    qrCodeDataUrl
+                }
+            }
+        );
+
+        const updatedSession = await Session.findById(session._id);
         res.status(201).json({
             success: true,
-            data: session
+            data: updatedSession
         });
     } catch (error) {
         console.error('Create session error:', error);
@@ -118,7 +76,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
 // @access  Private (Student only)
 export const joinSession = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { code } = req.body;
+        const code = req.body.code?.trim().toUpperCase();
 
         if (!code) {
             res.status(400).json({ success: false, message: 'Please provide a session code' });
@@ -134,12 +92,30 @@ export const joinSession = async (req: Request, res: Response): Promise<void> =>
             });
             return;
         }
+        // Check session expiry
+        if (session.expiresAt && session.expiresAt < new Date()) {
+        res.status(400).json({
+            success: false,
+            message: 'Session expired'
+        });
+        return;
+        }
+        // Check max students
+        if (session.students.length >= session.maxStudents!) {
+            res.status(400).json({
+                success: false,
+                message: 'Session is full'
+            });
+            return;
+        }
 
         // Add student to session if not already added
         const studentId = req.user?._id;
-        if (studentId && !session.students.includes(studentId)) {
-            session.students.push(studentId);
-            await session.save();
+        if(studentId){
+            await Session.updateOne(
+                {_id:session.id, students:{$ne: studentId}},
+                {$push: {students:studentId}}
+            );
         }
 
         res.status(200).json({
@@ -174,26 +150,16 @@ export const getSessionDetails = async (req: Request, res: Response): Promise<vo
         }
 
         if (session) {
-            const baseUrl = getLocalUrl();
-            // If the current detected base URL is public but the session's joinUrl is local/localhost,
-            // refresh it so the QR code matches the current tunnel/domain.
-            if (!baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1') &&
-                (!session.joinUrl || session.joinUrl.includes('localhost') || session.joinUrl.includes('127.0.0.1'))) {
+            const joinUrl = session.isQuerySession
+            ? generateJoinUrl(`ask/${session.code}`)
+            : generateJoinUrl(session.code);
 
-                const joinUrl = session.isQuerySession ? `${baseUrl}/ask/${session.code}` : `${baseUrl}/join/${session.code}`;
-                try {
-                    const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
-                        width: 300,
-                        margin: 2,
-                        color: { dark: '#6366f1', light: '#ffffff' }
-                    });
-                    session.qrCodeDataUrl = qrCodeDataUrl;
-                    session.joinUrl = joinUrl;
-                    await session.save();
-                } catch (qrError) {
-                    console.error('QR refresh error in getSessionDetails:', qrError);
-                }
-            }
+            const qrCodeDataUrl = await generateQRCode(joinUrl);
+
+            session.joinUrl = joinUrl;
+            session.qrCodeDataUrl = qrCodeDataUrl;
+
+            await session.save();
         }
 
         res.status(200).json({
@@ -400,18 +366,16 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
         // Find existing query session for this teacher
         let session = await Session.findOne({ teacher: userId, isQuerySession: true });
 
-        const baseUrl = getLocalUrl();
+        
 
         // If session exists but has localhost URL, refresh it
-        if (session && session.joinUrl?.includes('localhost') && !baseUrl.includes('localhost')) {
-            const askUrl = `${baseUrl}/ask/${session.code}`;
-            const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
-                width: 300,
-                margin: 2,
-                color: { dark: '#6366f1', light: '#ffffff' }
-            });
+        if (session && session.joinUrl?.includes('localhost')) {
+            const askUrl = generateJoinUrl(`ask/${session.code}`);
+            const qrCodeDataUrl = await generateQRCode(askUrl);
+
             session.qrCodeDataUrl = qrCodeDataUrl;
             session.joinUrl = askUrl;
+
             await session.save();
         }
 
@@ -433,15 +397,8 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
                 isQuerySession: true
             });
 
-            const askUrl = `${baseUrl}/ask/${code}`;
-            const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
-                width: 300,
-                margin: 2,
-                color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
-                }
-            });
+            const askUrl = generateJoinUrl(`ask/${code}`);
+            const qrCodeDataUrl = await generateQRCode(askUrl);
 
             session.qrCodeDataUrl = qrCodeDataUrl;
             session.joinUrl = askUrl;

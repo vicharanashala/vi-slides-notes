@@ -385,7 +385,7 @@ a:hover {
 }
 
 .fade-in {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes slideIn {

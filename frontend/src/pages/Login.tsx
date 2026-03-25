@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 import { authService } from '../services/authService';
@@ -21,8 +21,12 @@ const Login: React.FC = () => {
 
     // Correction: AuthContext has `login` function which does the API call. 
     // I will manually call authService.googleLogin, then update context.
-
+    const location = useLocation();
     const navigate = useNavigate();
+
+    // helper to get redirect param
+    const queryParams = new URLSearchParams(location.search);
+    const redirect = queryParams.get("redirect");
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +41,12 @@ const Login: React.FC = () => {
 
         try {
             await login(formData);
-            navigate('/dashboard');
+            // ✅ new
+            if (redirect) {
+            navigate(redirect);
+            } else {
+            navigate("/dashboard");
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {

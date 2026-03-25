@@ -29,6 +29,8 @@ const Dashboard: React.FC = () => {
     const [activeSession, setActiveSession] = useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
     useEffect(() => {
         const fetchActiveSession = async () => {
             try {
@@ -90,6 +92,10 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = () => {
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = () => {
         logout();
         navigate('/login');
     };
@@ -304,11 +310,11 @@ const Dashboard: React.FC = () => {
                         <>
                             <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0) 100%)' }}>
                                 <h3>Join Session</h3>
-                                <p className="text-muted mt-1">Enter the 6-digit code provided by your teacher.</p>
+                                <p className="text-muted mt-1">Enter the 8-digit code provided by your teacher.</p>
                                 <form onSubmit={handleJoinSession} style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                                     <input
                                         type="text"
-                                        placeholder="E.G. AB1234"
+                                        placeholder="E.G. AB12CD34"
                                         className="form-input"
                                         style={{ textTransform: 'uppercase' }}
                                         value={joinCode}
@@ -457,6 +463,46 @@ const Dashboard: React.FC = () => {
             )}
 
             {/* Certificates Section for Students */}
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div className='modal-overlay fade-in' style={{
+                    position:'fixed',
+                    top:0,left:0,right:0,bottom:0,
+                    background:'rgba(0,0,0,0.7)',
+                    display:'flex', justifyContent:'center', alignItems:'center',
+                    zIndex:2000
+                }}>
+                    <div className="glass-card" style={{
+                        padding:'2rem',
+                        borderRadius: '12px',
+                        textAlign:'center',
+                        maxWidth:'400px',
+                        width:'90%'
+                    }}>
+                        <h3 style={{ marginBottom: '1rem' }}>Confirm Logout</h3>
+                        <p style={{ marginBottom: '1.5rem' }}>
+                            Are you sure you want to logout?
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button
+                                className="btn"
+                                onClick={() => setShowLogoutConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="btn"
+                                style={{ background: '#ef4444', color: 'white' }}
+                                onClick={confirmLogout}
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div> )}
 
         </div >
     );
