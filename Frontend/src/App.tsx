@@ -9,7 +9,8 @@ import Assignment from "./pages/Assignment";
 import AssignmentDetail from "./pages/AssignmentDetail";
 import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
-import EditProfile from "./pages/EditProfile"
+import EditProfile from "./pages/EditProfile";
+import SessionPage from "./pages/SessionPage";
 
 function App() {
   return (
@@ -70,8 +71,30 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/assignments" element={<ProtectedRoute><TeacherAssignments /></ProtectedRoute>} />
-          <Route path="/assignments/:id" element={<ProtectedRoute><TeacherAssignmentDetail /></ProtectedRoute>} />
+          <Route
+            path="/assignments"
+            element={
+              <ProtectedRoute>
+                <TeacherAssignments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments/:id"
+            element={
+              <ProtectedRoute>
+                <TeacherAssignmentDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="session/:classId"
+            element={
+              <ProtectedRoute>
+                <SessionPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

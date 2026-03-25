@@ -67,6 +67,47 @@ export interface SubmitResponse {
   assignment: Assignment;
 }
 
+// -------- CLASS TYPES --------
+export interface Class {
+  _id: string;
+  title: string;
+  instructor: {
+    _id: string;
+    fullname: string;
+    email: string;
+  };
+  classCode: string;
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateClassResponse {
+  success: boolean;
+  data: Class;
+}
+
+export interface StartEndClassResponse {
+  message: string;
+  data: Class;
+}
+
+export interface JoinClassResponse {
+  success: boolean;
+  message: string;
+  classId: string;
+}
+
+export interface GetClassResponse {
+  _id: string;
+  title: string;
+  instructor: string;
+  classCode: string;
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // -------- AXIOS INSTANCE --------
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
@@ -105,3 +146,27 @@ export const submitAssignment = (id: string, fileUrl: string) =>
   api.post<SubmitResponse>(`/assignments/${id}/submit`, { fileUrl });
 
 export default api;
+
+
+// -------- CLASS --------
+
+// (Instructor)
+export const createClass = (title: string) =>
+  api.post<CreateClassResponse>("/class/create", { title });
+export const startClass = (classId: string) =>
+  api.post<StartEndClassResponse>(`/class/${classId}/start`);
+export const endClass = (classId: string) =>
+  api.post<StartEndClassResponse>(`/class/${classId}/end`);
+
+// -------- STUDENT --------
+
+export const joinClass = (classCode: string) =>
+  api.post<JoinClassResponse>("/class/join", { classCode });
+
+// -------- COMMON --------
+
+export const getClassById = (id: string) =>
+  api.get<GetClassResponse>(`/class/${id}`);
+
+export const getClassByCode = (code: string) =>
+  api.get<GetClassResponse>(`/class/code/${code}`);

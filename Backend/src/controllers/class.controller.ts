@@ -1,7 +1,6 @@
 import { Response } from "express";
 import classModel from "../models/class.model";
 import { AuthRequest } from "../middleware/auth.middleware";
-import { getIO } from "../socket/socket";
 
 // Class Code Generator
 const generateClassCode = (): string => {
@@ -67,12 +66,6 @@ export const startClass = async (req: AuthRequest, res: Response) => {
     classObj.isLive = true;
     await classObj.save();
 
-    // SOCKET EVENT
-    const io = getIO();
-    io.to(classId).emit("class_started", {
-      classId,
-    });
-
     res.json({ message: "Class started", data: classObj });
 
   } catch (err) {
@@ -101,13 +94,6 @@ export const endClass = async (req: AuthRequest, res: Response) => {
 
     classObj.isLive = false;
     await classObj.save();
-
-    const io = getIO();
-
-    // Notify all users
-    io.to(classId).emit("class_ended", { classId });
-
-    await io.in(classId).socketsLeave(classId);
 
     res.json({ message: "Class ended", data: classObj });
 
