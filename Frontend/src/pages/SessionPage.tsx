@@ -55,10 +55,8 @@ useEffect(() => {
     if (data.classId !== classId) return; 
 
     alert("Session ended by instructor");
-
     const socket = getSocket();
     socket.disconnect(); 
-
     navigate("/dashboard");
   };
 
