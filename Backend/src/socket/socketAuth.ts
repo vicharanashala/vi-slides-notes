@@ -1,35 +1,39 @@
-import { Socket } from "socket.io";
+import { Socket, ExtendedError } from "socket.io";
 import jwt from "jsonwebtoken";
 import userModel from "../models/user.model";
-import * as cookie from "cookie"; 
+import * as cookie from "cookie";
 
-export const socketAuth = async (socket: Socket, next: any) => {
+interface JwtPayload {
+  _id: string;
+}
+
+export const socketAuth = async (
+  socket: Socket,
+  next: (err?: ExtendedError) => void
+) => {
   try {
-    const rawCookie = socket.handshake.headers.cookie;
-
-    if (!rawCookie) {
-      return next(new Error("Unauthorized: No cookies"));
+    if (!process.env.JWT_SECRET) {
+      return next(new Error("Server config error"));
     }
 
-    // Parse cookies
+    const rawCookie = socket.handshake.headers.cookie || "";
     const parsedCookies = cookie.parse(rawCookie);
 
-    // Extract and decode token
+    const authHeader = socket.handshake.auth?.token;
+
     const token = parsedCookies.token
       ? decodeURIComponent(parsedCookies.token)
-      : null;
+      : authHeader || null;
 
     if (!token) {
       return next(new Error("Unauthorized: No token"));
     }
 
-    // Verify JWT
-    const decoded: any = jwt.verify(
+    const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET as string
-    );
+      process.env.JWT_SECRET
+    ) as JwtPayload;
 
-    // Fetch user
     const user = await userModel
       .findById(decoded._id)
       .select("-password");
@@ -38,12 +42,11 @@ export const socketAuth = async (socket: Socket, next: any) => {
       return next(new Error("Unauthorized: User not found"));
     }
 
-    // Attach user to socket
     socket.data.user = user;
 
     next();
   } catch (err) {
     console.log("JWT ERROR:", err);
-    next(new Error("Invalid token"));
+    next(new Error("Unauthorized: Invalid or expired token"));
   }
 };

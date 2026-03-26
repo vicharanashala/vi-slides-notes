@@ -1,8 +1,9 @@
 import { Response } from "express";
 import classModel from "../models/class.model";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { getIO } from "../socket/socket";
 
-// Class Code Generator
+// ------------------- CLASS CODE GENERATOR -------------------
 const generateClassCode = (): string => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
@@ -16,7 +17,9 @@ const generateClassCode = (): string => {
 export const createClass = async (req: AuthRequest, res: Response) => {
   try {
     if (req.user.role !== "Instructor") {
-      return res.status(403).json({ message: "Only instructors can create classes" });
+      return res.status(403).json({
+        message: "Only instructors can create classes",
+      });
     }
 
     const { title } = req.body;
@@ -33,6 +36,8 @@ export const createClass = async (req: AuthRequest, res: Response) => {
       title,
       instructor: req.user._id,
       classCode,
+      isLive: false,
+      participants: [],
     });
 
     res.status(201).json({
@@ -56,18 +61,32 @@ export const startClass = async (req: AuthRequest, res: Response) => {
     }
 
     if (req.user.role !== "Instructor") {
-      return res.status(403).json({ message: "Only instructors can start class" });
+      return res.status(403).json({
+        message: "Only instructors can start class",
+      });
     }
 
     if (classObj.instructor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not your class" });
     }
 
+    // Prevent duplicate start
+    if (classObj.isLive) {
+      return res.status(400).json({ message: "Class already live" });
+    }
+
     classObj.isLive = true;
     await classObj.save();
 
-    res.json({ message: "Class started", data: classObj });
+    // 🔥 SOCKET SYNC
+    const io = getIO();
+    io.to(classId).emit("class_started", { classId });
 
+    res.json({
+      success: true,
+      message: "Class started",
+      data: classObj,
+    });
   } catch (err) {
     res.status(500).json({ message: "Error starting class" });
   }
@@ -76,7 +95,7 @@ export const startClass = async (req: AuthRequest, res: Response) => {
 // ------------------- END CLASS -------------------
 export const endClass = async (req: AuthRequest, res: Response) => {
   try {
-    const { classId } = req.params;
+    const { classId } = req.params as { classId: string };
 
     const classObj = await classModel.findById(classId);
 
@@ -85,18 +104,43 @@ export const endClass = async (req: AuthRequest, res: Response) => {
     }
 
     if (req.user.role !== "Instructor") {
-      return res.status(403).json({ message: "Only instructors can end class" });
+      return res.status(403).json({
+        message: "Only instructors can end class",
+      });
     }
 
     if (classObj.instructor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not your class" });
     }
 
+    if (!classObj.isLive) {
+      return res.status(400).json({ message: "Class already ended" });
+    }
+
     classObj.isLive = false;
+
+    classObj.participants = [];
+
     await classObj.save();
 
-    res.json({ message: "Class ended", data: classObj });
+    const io = getIO();
 
+    // Notify all users
+    io.to(classId).emit("class_ended", { classId });
+
+    // 🔥 Force all sockets to leave room
+    const sockets = await io.in(classId).fetchSockets();
+
+    sockets.forEach((s) => {
+      s.leave(classId);
+      s.data.classId = null;
+    });
+
+    res.json({
+      success: true,
+      message: "Class ended",
+      data: classObj,
+    });
   } catch (err) {
     console.error("End class error:", err);
     res.status(500).json({ message: "Error ending class" });
@@ -109,7 +153,9 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
     const { classCode } = req.body;
 
     if (req.user.role !== "Student") {
-      return res.status(403).json({ message: "Only students can join classes" });
+      return res.status(403).json({
+        message: "Only students can join classes",
+      });
     }
 
     const classObj = await classModel.findOne({ classCode });
@@ -136,13 +182,12 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
       message: "Joined successfully",
       classId: classObj._id,
     });
-
   } catch (err) {
     res.status(500).json({ message: "Error joining class" });
   }
 };
 
-// GET /api/class/:id
+// ------------------- GET CLASS BY ID -------------------
 export const getClassById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

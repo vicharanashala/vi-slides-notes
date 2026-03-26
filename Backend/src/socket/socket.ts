@@ -92,8 +92,30 @@ export const initSocket = (server: http.Server) => {
         return socket.emit("error", "Only instructor can end class");
       }
 
-      socket.to(classId).emit("class_ended", { classId });
+      const classObj = await classModel.findById(classId);
+
+      if (!classObj || classObj.instructor.toString() !== user._id.toString()) {
+        return socket.emit("error", "Not authorized");
+      }
+
+      // Update DB
+      classObj.isLive = false;
+      await classObj.save();
+
+      // Notify all users
+      io.to(classId).emit("class_ended", { classId });
+
+      // 🔥 Force everyone to leave room
+      const sockets = await io.in(classId).fetchSockets();
+
+      sockets.forEach((s) => {
+        s.leave(classId);
+        s.data.classId = null;
+      });
+
+      console.log(`Class ${classId} ended, all users removed`);
     });
+
     // ---------------- DISCONNECT ----------------
     socket.on("disconnect", () => {
       const { user, classId } = socket.data;
