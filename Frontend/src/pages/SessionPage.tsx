@@ -51,8 +51,12 @@ useEffect(() => {
   const handleUserJoined = (data: { userId: string }) => console.log("User joined:", data.userId);
   const handleUserLeft = (data: { userId: string }) => console.log("User left:", data.userId);
   const handleClassStarted = () => console.log("Class started");
-  const handleClassEnded = () => {
+  const handleClassEnded = (data: { classId: string }) => {
+    if (data.classId !== classId) return; 
+
     alert("Session ended by instructor");
+    const socket = getSocket();
+    socket.disconnect(); 
     navigate("/dashboard");
   };
 
