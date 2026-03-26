@@ -1,13 +1,60 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAssignments } from "./TeacherAssignments";
+import { Pencil, Trash } from "lucide-react";
+
+import {
+  getSingleAssignment,
+  deleteAssignment as deleteAssignmentAPI,
+} from "@/lib/api";
 
 export default function TeacherAssignmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const assignment = getAssignments().find((a) => a.id === id);
 
+  const [assignment, setAssignment] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 Fetch from API
+  useEffect(() => {
+    const fetchAssignment = async () => {
+      try {
+        const res = await getSingleAssignment(id!);
+        setAssignment(res.data.assignment);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssignment();
+  }, [id]);
+
+  // 🗑️ Delete handler
+  const handleDelete = async () => {
+    if (!confirm("Delete this assignment?")) return;
+
+    try {
+      await deleteAssignmentAPI(id!);
+      navigate("/assignments");
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  };
+
+  // ⏳ Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading assignment...</p>
+      </div>
+    );
+  }
+
+  // ❌ Not found
   if (!assignment) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -34,19 +81,46 @@ export default function TeacherAssignmentDetail() {
           <div className="flex items-center gap-3">
             <span className="text-3xl">📋</span>
             <div>
-              <h1 className="text-3xl font-extrabold text-foreground">Assignment Detail</h1>
+              <h1 className="text-3xl font-extrabold text-foreground">
+                Assignment Detail
+              </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Viewing assignment details
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            className="h-10 px-4 text-sm font-medium border border-foreground/20 bg-transparent hover:bg-muted/30"
-            onClick={() => navigate("/assignments")}
-          >
-            ← Back to Assignments
-          </Button>
+
+          {/* Right side buttons */}
+          <div className="flex items-center gap-2">
+
+            {/* ✏️ Edit */}
+            <Button
+              variant="outline"
+              className="h-10 px-3 border border-foreground/20"
+              onClick={() => navigate(`/assignments/edit/${id}`)}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+
+            {/* 🗑️ Delete */}
+            <Button
+              variant="destructive"
+              className="h-10 px-3"
+              onClick={handleDelete}
+            >
+              <Trash className="w-4 h-4" />
+            </Button>
+
+            {/* Back */}
+            <Button
+              variant="outline"
+              className="h-10 px-4 text-sm font-medium border border-foreground/20 bg-transparent hover:bg-muted/30"
+              onClick={() => navigate("/assignments")}
+            >
+              ← Back
+            </Button>
+
+          </div>
         </div>
 
         {/* Detail Card */}
@@ -56,6 +130,7 @@ export default function TeacherAssignmentDetail() {
               {assignment.title}
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-5 pt-2">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -65,24 +140,29 @@ export default function TeacherAssignmentDetail() {
                 {assignment.description || "No description provided."}
               </p>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Max Marks
                 </p>
-                <p className="text-lg font-bold text-foreground">{assignment.maxMarks}</p>
+                <p className="text-lg font-bold text-foreground">
+                  {assignment.maxMarks}
+                </p>
               </div>
+
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Deadline
                 </p>
                 <p className="text-sm font-medium text-foreground">
-                  {assignment.deadline
-                    ? new Date(assignment.deadline).toLocaleString()
+                  {assignment.dueDate
+                    ? new Date(assignment.dueDate).toLocaleString()
                     : "No deadline set"}
                 </p>
               </div>
             </div>
+
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Created At
