@@ -7,6 +7,7 @@ import {
   updateAssignment,
   deleteAssignment,
   submitAssignment,
+  getAllSubmissions,
 } from "../controllers/assignment.controller";
 
 const router = Router();
@@ -16,6 +17,9 @@ router.post("/", authMiddleware, createAssignment);
 
 // GET ALL
 router.get("/", getAssignments);
+
+// GET ALL SUBMISSIONS
+router.get("/submissions/all", authMiddleware, getAllSubmissions);
 
 // GET ONE
 router.get("/:id", getSingleAssignment);
