@@ -33,7 +33,7 @@ export default function TeacherAssignmentDetail() {
     fetchAssignment();
   }, [id]);
 
-  // 🗑️ Delete
+  // Delete
   const handleDelete = async () => {
     if (!confirm("Delete this assignment?")) return;
 
@@ -46,12 +46,12 @@ export default function TeacherAssignmentDetail() {
     }
   };
 
-  // 📂 View Submissions
+  // View Submissions
   const handleViewSubmissions = async () => {
     try {
       const res = await getAllSubmissions();
 
-      // ⚠️ TEMP FILTER using title
+      
       const filtered = res.data.submissions.filter(
         (s: any) => s.assignmentTitle === assignment.title
       );
@@ -63,7 +63,7 @@ export default function TeacherAssignmentDetail() {
         return;
       }
 
-      // 🔥 Example: open first submission
+      
       window.open(filtered[0].fileUrl);
 
     } catch (err) {
@@ -72,7 +72,7 @@ export default function TeacherAssignmentDetail() {
     }
   };
 
-  // ⏳ Loading
+  
   if (loading) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -81,7 +81,7 @@ export default function TeacherAssignmentDetail() {
     );
   }
 
-  // ❌ Not found
+  
   if (!assignment) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -119,7 +119,7 @@ export default function TeacherAssignmentDetail() {
 
           <div className="flex items-center gap-2">
 
-            {/* ✏️ Edit */}
+            {/* Edit */}
             <Button
               variant="outline"
               className="h-10 px-3 border border-foreground/20"
@@ -200,7 +200,7 @@ export default function TeacherAssignmentDetail() {
           </CardContent>
         </Card>
 
-        {/* 🔥 VIEW SUBMISSIONS BUTTON */}
+        {/* View Submissions */}
         <div className="mt-6 flex justify-end">
           <Button
             className="h-10 px-5 text-sm font-semibold border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
