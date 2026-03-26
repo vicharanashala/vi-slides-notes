@@ -7,6 +7,7 @@ import { Pencil, Trash } from "lucide-react";
 import {
   getSingleAssignment,
   deleteAssignment as deleteAssignmentAPI,
+  getAllSubmissions,
 } from "@/lib/api";
 
 export default function TeacherAssignmentDetail() {
@@ -16,7 +17,7 @@ export default function TeacherAssignmentDetail() {
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Fetch from API
+  // 🔄 Fetch assignment
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
@@ -32,7 +33,7 @@ export default function TeacherAssignmentDetail() {
     fetchAssignment();
   }, [id]);
 
-  // 🗑️ Delete handler
+  // 🗑️ Delete
   const handleDelete = async () => {
     if (!confirm("Delete this assignment?")) return;
 
@@ -45,7 +46,33 @@ export default function TeacherAssignmentDetail() {
     }
   };
 
-  // ⏳ Loading state
+  // 📂 View Submissions
+  const handleViewSubmissions = async () => {
+    try {
+      const res = await getAllSubmissions();
+
+      // ⚠️ TEMP FILTER using title
+      const filtered = res.data.submissions.filter(
+        (s: any) => s.assignmentTitle === assignment.title
+      );
+
+      console.log("Filtered submissions:", filtered);
+
+      if (filtered.length === 0) {
+        alert("No submissions found for this assignment");
+        return;
+      }
+
+      // 🔥 Example: open first submission
+      window.open(filtered[0].fileUrl);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch submissions");
+    }
+  };
+
+  // ⏳ Loading
   if (loading) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -90,7 +117,6 @@ export default function TeacherAssignmentDetail() {
             </div>
           </div>
 
-          {/* Right side buttons */}
           <div className="flex items-center gap-2">
 
             {/* ✏️ Edit */}
@@ -173,6 +199,16 @@ export default function TeacherAssignmentDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 🔥 VIEW SUBMISSIONS BUTTON */}
+        <div className="mt-6 flex justify-end">
+          <Button
+            className="h-10 px-5 text-sm font-semibold border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
+            onClick={handleViewSubmissions}
+          >
+            View Submissions
+          </Button>
+        </div>
 
       </div>
     </div>

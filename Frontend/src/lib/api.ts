@@ -124,6 +124,15 @@ export interface GetClassResponse {
   updatedAt: string;
 }
 
+export interface AllSubmissionsResponse {
+  submissions: {
+    assignmentTitle: string;
+    student: { fullname: string; email: string };
+    fileUrl: string;
+    submittedAt: string;
+  }[];
+}
+
 // -------- AXIOS INSTANCE --------
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
@@ -171,6 +180,8 @@ export const updateAssignment = (id: string, data: UpdateAssignmentData) =>
   api.put<AssignmentResponse>(`/assignments/${id}`, data);
 export const deleteAssignment = (id: string) =>
   api.delete<DeleteAssignmentResponse>(`/assignments/${id}`);
+export const getAllSubmissions = () =>
+  api.get<AllSubmissionsResponse>("/assignments/submissions/all");
 export default api;
 
 // -------- CLASS --------
