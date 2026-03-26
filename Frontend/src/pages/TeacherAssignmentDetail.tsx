@@ -17,7 +17,7 @@ export default function TeacherAssignmentDetail() {
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Fetch assignment
+ //fetch
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
@@ -128,7 +128,7 @@ export default function TeacherAssignmentDetail() {
               <Pencil className="w-4 h-4" />
             </Button>
 
-            {/* 🗑️ Delete */}
+            {/* Delete */}
             <Button
               variant="destructive"
               className="h-10 px-3"
