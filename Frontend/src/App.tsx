@@ -11,6 +11,7 @@ import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
 import EditProfile from "./pages/EditProfile";
 import SessionPage from "./pages/SessionPage";
+import TodoPage from "./pages/todo-page";
 
 function App() {
   return (
@@ -92,6 +93,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SessionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/todos"
+            element={
+              <ProtectedRoute>
+                <TodoPage />
               </ProtectedRoute>
             }
           />

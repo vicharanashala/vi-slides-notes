@@ -2,6 +2,7 @@ import { CertificatesCard, AssignmentsCard, JoinSessionCard } from "./student-ca
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import { Card, CardContent } from "@/components/ui/card";
+import TodoButton from "@/components/todo-button";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -20,7 +21,10 @@ export default function StudentDashboard() {
               Here's a quick overview of your activity.
             </p>
           </div>
-          <NotificationBell />
+            <div className="flex items-center gap-0">
+              <TodoButton />
+              <NotificationBell />
+            </div>
         </div>
 
         {/* Welcome card */}

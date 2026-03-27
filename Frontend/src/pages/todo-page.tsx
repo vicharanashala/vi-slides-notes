@@ -1,0 +1,319 @@
+import { useEffect, useState } from "react";
+import { getTodos, createTodo, updateTodo, deleteTodo, type Todo } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Trash2, Plus, ArrowLeft, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+export default function TodoPage() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const navigate = useNavigate();
+
+  // Fetch todos on mount
+  useEffect(() => {
+    const loadTodos = async () => {
+      try {
+        setLoading(true);
+        const res = await getTodos();
+        setTodos(res.data.todos);
+      } catch (err) {
+        console.error("Failed to load todos:", err);
+        alert("Failed to load todos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTodos();
+  }, []);
+
+  // Add new todo
+  const handleAddTodo = async () => {
+    if (!title.trim()) {
+      alert("Please enter a title");
+      return;
+    }
+
+    if (!dueDate) {
+      alert("Please select a due date");
+      return;
+    }
+
+    try {
+      const res = await createTodo({
+        title: title.trim(),
+        description: description.trim(),
+        dueDate: dueDate,
+      });
+      setTodos([...todos, res.data]);
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+    } catch (err) {
+      console.error("Failed to create todo:", err);
+      alert("Failed to create todo");
+    }
+  };
+
+  // Toggle todo completion
+  const handleToggleTodo = async (todo: Todo) => {
+    try {
+      const res = await updateTodo(todo._id, {
+        completed: !todo.completed,
+      });
+      setTodos(todos.map((t) => (t._id === todo._id ? res.data : t)));
+    } catch (err) {
+      console.error("Failed to update todo:", err);
+      alert("Failed to update todo");
+    }
+  };
+
+  // Delete todo
+  const handleDeleteTodo = async (id: string) => {
+    try {
+      await deleteTodo(id);
+      setTodos(todos.filter((t) => t._id !== id));
+    } catch (err) {
+      console.error("Failed to delete todo:", err);
+      alert("Failed to delete todo");
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Check if date is overdue
+  const isOverdue = (dateString: string) => {
+    try {
+      const dueDate = new Date(dateString);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return dueDate < today;
+    } catch {
+      return false;
+    }
+  };
+
+  // Separate todos by status
+  const completedTodos = todos.filter((t) => t.completed);
+  const pendingTodos = todos.filter((t) => !t.completed);
+  const overdueTodos = pendingTodos.filter((t) => isOverdue(t.dueDate));
+  const upcomingTodos = pendingTodos.filter((t) => !isOverdue(t.dueDate));
+
+  return (
+    <div className="flex flex-col min-h-dvh px-4 py-12">
+      <div className="mx-auto w-full max-w-2xl flex flex-col gap-8">
+        
+        {/* Back Button */}
+        <Button
+          onClick={() => navigate(-1)}
+          className="w-fit px-4 h-10"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          <span className="text-gradient">Back</span>
+        </Button>
+
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gradient">Todo List</h1>
+          <p className="mt-2 text-base text-muted-foreground">
+            Manage your tasks and keep track of your work.
+          </p>
+        </div>
+
+        {/* Add Todo Card */}
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle>Add New Todo</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Input
+              placeholder="Todo title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <textarea
+              placeholder="Todo description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full p-2 border border-input rounded-md bg-background text-foreground"
+              rows={4}
+            />
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <Button onClick={handleAddTodo} className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Todo
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Todos Sections */}
+        {loading && <p className="text-muted-foreground">Loading...</p>}
+
+        {!loading && todos.length === 0 && (
+          <p className="text-muted-foreground text-center py-8">
+            No todos yet. Create one above!
+          </p>
+        )}
+
+        {!loading && todos.length > 0 && (
+          <div className="flex flex-col gap-6">
+            
+            {/* Overdue Todos */}
+            {overdueTodos.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 text-destructive">
+                  ⚠️ Overdue ({overdueTodos.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {overdueTodos.map((todo) => (
+                    <Card key={todo._id} className="shadow-md border-l-4 border-l-destructive">
+                      <CardContent className="p-4 flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => handleToggleTodo(todo)}
+                          className="mt-1 cursor-pointer w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-destructive">
+                            {todo.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {todo.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-destructive">
+                            <Calendar className="w-4 h-4" />
+                            <span>Due: {formatDate(todo.dueDate)}</span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTodo(todo._id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming/Pending Todos */}
+            {upcomingTodos.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 text-accent">
+                  📋 Pending ({upcomingTodos.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {upcomingTodos.map((todo) => (
+                    <Card key={todo._id} className="shadow-md hover:shadow-lg transition-shadow">
+                      <CardContent className="p-4 flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => handleToggleTodo(todo)}
+                          className="mt-1 cursor-pointer w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold">
+                            {todo.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {todo.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Due: {formatDate(todo.dueDate)}</span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTodo(todo._id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed Todos */}
+            {completedTodos.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 text-green-600 dark:text-green-400">
+                  ✓ Completed ({completedTodos.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {completedTodos.map((todo) => (
+                    <Card
+                      key={todo._id}
+                      className="shadow-md bg-muted/50 opacity-75"
+                    >
+                      <CardContent className="p-4 flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => handleToggleTodo(todo)}
+                          className="mt-1 cursor-pointer w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold line-through text-muted-foreground">
+                            {todo.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {todo.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Due: {formatDate(todo.dueDate)}</span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTodo(todo._id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

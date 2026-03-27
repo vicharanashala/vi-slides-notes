@@ -170,3 +170,42 @@ export const getClassById = (id: string) =>
 
 export const getClassByCode = (code: string) =>
   api.get<GetClassResponse>(`/class/code/${code}`);
+
+
+// -------- TODO TYPES --------
+export interface Todo {
+  _id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodosResponse {
+  todos: Todo[];
+}
+
+export interface CreateTodoRequest {
+  title: string;
+  description: string;
+}
+
+export interface UpdateTodoRequest {
+  title?: string;
+  description?: string;
+  completed?: boolean;
+}
+
+// -------- TODOS --------
+export const getTodos = () =>
+  api.get<TodosResponse>("/todos");
+
+export const createTodo = (data: CreateTodoRequest) =>
+  api.post<Todo>("/todos", data);
+
+export const updateTodo = (id: string, data: UpdateTodoRequest) =>
+  api.put<Todo>(`/todos/${id}`, data);
+
+export const deleteTodo = (id: string) =>
+  api.delete<{ message: string }>(`/todos/${id}`);
