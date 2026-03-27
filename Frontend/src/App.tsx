@@ -12,6 +12,8 @@ import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
 import EditProfile from "./pages/EditProfile";
 import SessionPage from "./pages/SessionPage";
 import TeacherAssignmentEdit from "./pages/TeacherAssignmentEdit";
+import TodoPage from "./pages/todo-page";
+
 function App() {
   return (
     <ThemeProvider
@@ -98,6 +100,12 @@ function App() {
           <Route
              path="/assignments/edit/:id" 
              element={<TeacherAssignmentEdit />} 
+            path="/todos"
+            element={
+              <ProtectedRoute>
+                <TodoPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </BrowserRouter>
