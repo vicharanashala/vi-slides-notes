@@ -10,6 +10,7 @@ import type { GetClassResponse } from "@/lib/api";
 import { getClassById } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getSocket } from "@/lib/socket";
+import Whiteboard from "@/components/Whiteboard";
 
 const SessionPage = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -25,6 +26,7 @@ const SessionPage = () => {
 
   const { user } = useAuth();
   const isTeacher = classData?.instructor === user?._id;
+  const [showWhiteboard, setShowWhiteboard] = useState(false); 
 
   // ================== REFS ==================
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -112,7 +114,7 @@ const SessionPage = () => {
       socket.emit("webrtc_offer", { to: studentId, offer });
     };
 
-    const handleOffer = async ({ offer, from }: any) => {
+    const handleOffer = async ({ offer, from }: unknown) => {
       if (isTeacher) return;
       const pc = new RTCPeerConnection(rtcConfig);
       pcRef.current = pc;
@@ -232,7 +234,21 @@ const SessionPage = () => {
             }}
             onStreamStarted={handleStreamStarted}
             onStreamStopped={handleStreamStopped}
+            onOpenWhiteboard={() => setShowWhiteboard(true)}
           />
+           {showWhiteboard && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    onClick={() => setShowWhiteboard(false)}   
+  >
+    <div
+      className="w-[90%] h-[90%] bg-white rounded-lg overflow-hidden"
+      onClick={(e) => e.stopPropagation()}     
+    >
+      <Whiteboard onClose={() => setShowWhiteboard(false)} />
+    </div>
+  </div>
+)}
 
           <div className="flex-1 p-6">
             <Card className="h-full flex flex-col p-4 gap-4 bg-card">

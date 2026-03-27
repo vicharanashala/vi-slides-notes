@@ -21,9 +21,10 @@ type TopbarProps = {
   onShareFile: (file: any) => void;
   onStreamStarted: (stream: MediaStream) => void;
   onStreamStopped: () => void;
+  onOpenWhiteboard: () => void;
 };
 
-export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarted, onStreamStopped }: TopbarProps) => {
+export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarted, onStreamStopped , onOpenWhiteboard}: TopbarProps) => {
   const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarte
           <ChooseFile onClick={() => fileInputRef.current?.click()} />
           {!isSharing ? <ShareScreen onClick={handleStartShare} /> : <StopShare onClick={handleStopShare} />}
           <PollButton />
-          <WhiteboardButton />
+          <WhiteboardButton onClick={onOpenWhiteboard}/>
           <EndSessionButton onClick={async () => {
              await endClass(classId);
              getSocket().emit("end_class", { classId });
