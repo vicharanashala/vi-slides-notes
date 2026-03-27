@@ -2,13 +2,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, ChevronDown, ChevronUp } from "lucide-react";
 
 import {
   getSingleAssignment,
   deleteAssignment as deleteAssignmentAPI,
   getAllSubmissions,
 } from "@/lib/api";
+
+import type { AllSubmission } from "@/lib/api";
 
 export default function TeacherAssignmentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +19,13 @@ export default function TeacherAssignmentDetail() {
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Fetch assignment
+  // Submissions state
+  const [submissions, setSubmissions] = useState<AllSubmission[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsVisible, setSubmissionsVisible] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState("");
+
+  // Fetch assignment
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
@@ -33,10 +41,9 @@ export default function TeacherAssignmentDetail() {
     fetchAssignment();
   }, [id]);
 
-  // 🗑️ Delete
+  // Delete handler
   const handleDelete = async () => {
     if (!confirm("Delete this assignment?")) return;
-
     try {
       await deleteAssignmentAPI(id!);
       navigate("/assignments");
@@ -46,33 +53,32 @@ export default function TeacherAssignmentDetail() {
     }
   };
 
-  // 📂 View Submissions
-  const handleViewSubmissions = async () => {
+  // Toggle submissions
+  const handleToggleSubmissions = async () => {
+    if (submissionsVisible) {
+      setSubmissionsVisible(false);
+      return;
+    }
+
+    setSubmissionsLoading(true);
+    setSubmissionsError("");
+
     try {
       const res = await getAllSubmissions();
-
-      // ⚠️ TEMP FILTER using title
       const filtered = res.data.submissions.filter(
-        (s: any) => s.assignmentTitle === assignment.title
+        (s) => s.assignmentTitle === assignment?.title
       );
-
-      console.log("Filtered submissions:", filtered);
-
-      if (filtered.length === 0) {
-        alert("No submissions found for this assignment");
-        return;
-      }
-
-      // 🔥 Example: open first submission
-      window.open(filtered[0].fileUrl);
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed to fetch submissions");
+      setSubmissions(filtered);
+      setSubmissionsVisible(true);
+    } catch (err: any) {
+      setSubmissionsError(
+        err?.response?.data?.message || "Failed to load submissions"
+      );
+    } finally {
+      setSubmissionsLoading(false);
     }
   };
 
-  // ⏳ Loading
   if (loading) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -81,7 +87,6 @@ export default function TeacherAssignmentDetail() {
     );
   }
 
-  // ❌ Not found
   if (!assignment) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
@@ -101,8 +106,8 @@ export default function TeacherAssignmentDetail() {
   return (
     <div className="min-h-screen p-6">
       <div className="h-20 mb-6" />
-      <div className="max-w-3xl mx-auto">
 
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -118,8 +123,6 @@ export default function TeacherAssignmentDetail() {
           </div>
 
           <div className="flex items-center gap-2">
-
-            {/* ✏️ Edit */}
             <Button
               variant="outline"
               className="h-10 px-3 border border-foreground/20"
@@ -128,7 +131,6 @@ export default function TeacherAssignmentDetail() {
               <Pencil className="w-4 h-4" />
             </Button>
 
-            {/* 🗑️ Delete */}
             <Button
               variant="destructive"
               className="h-10 px-3"
@@ -137,51 +139,47 @@ export default function TeacherAssignmentDetail() {
               <Trash className="w-4 h-4" />
             </Button>
 
-            {/* Back */}
             <Button
               variant="outline"
-              className="h-10 px-4 text-sm font-medium border border-foreground/20 bg-transparent hover:bg-muted/30"
+              className="h-10 px-4"
               onClick={() => navigate("/assignments")}
             >
               ← Back
             </Button>
-
           </div>
         </div>
 
         {/* Detail Card */}
         <Card className="border border-foreground/10 bg-card/80 rounded-2xl shadow-xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-extrabold text-foreground">
+          <CardHeader>
+            <CardTitle className="text-2xl font-extrabold">
               {assignment.title}
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-5 pt-2">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <CardContent className="space-y-5">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase">
                 Description
               </p>
-              <p className="text-sm text-foreground">
-                {assignment.description || "No description provided."}
-              </p>
+              <p>{assignment.description || "No description provided."}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">
                   Max Marks
                 </p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-lg font-bold">
                   {assignment.maxMarks}
                 </p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">
                   Deadline
                 </p>
-                <p className="text-sm font-medium text-foreground">
+                <p>
                   {assignment.dueDate
                     ? new Date(assignment.dueDate).toLocaleString()
                     : "No deadline set"}
@@ -189,27 +187,76 @@ export default function TeacherAssignmentDetail() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase">
                 Created At
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p>
                 {new Date(assignment.createdAt).toLocaleString()}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* 🔥 VIEW SUBMISSIONS BUTTON */}
-        <div className="mt-6 flex justify-end">
+        {/* Button */}
+        <div className="mt-4">
           <Button
-            className="h-10 px-5 text-sm font-semibold border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
-            onClick={handleViewSubmissions}
+            className="w-full"
+            onClick={handleToggleSubmissions}
+            disabled={submissionsLoading}
           >
-            View Submissions
+            {submissionsLoading
+              ? "Loading..."
+              : submissionsVisible
+              ? "Hide Submissions"
+              : "View Submissions"}
           </Button>
         </div>
 
+        {/* Submissions */}
+        {submissionsVisible && (
+          <Card className="mt-3">
+            <CardHeader>
+              <CardTitle>
+                Student Submissions ({submissions.length})
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              {submissionsError ? (
+                <p className="text-red-500">{submissionsError}</p>
+              ) : submissions.length === 0 ? (
+                <p>No submissions yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {submissions.map((s, i) => (
+                    <li
+                      key={i}
+                      className="flex justify-between bg-muted p-3 rounded"
+                    >
+                      <div>
+                        <p>{s.student.fullname}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {s.student.email}
+                        </p>
+                      </div>
+
+                    
+                      <a
+                        href={s.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 underline"
+                      >
+                        View file
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

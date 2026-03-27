@@ -47,38 +47,60 @@ export default function TeacherAssignmentEdit() {
     <div className="p-6 max-w-xl mx-auto space-y-4">
       <h1 className="text-xl font-bold">Edit Assignment</h1>
 
-      <form onSubmit={handleUpdate} className="space-y-3">
-        <Input
-          value={form.title}
-          onChange={(e) =>
-            setForm({ ...form, title: e.target.value })
-          }
-        />
+      <form onSubmit={handleUpdate} className="space-y-4">
 
-        <Textarea
-          value={form.description}
-          onChange={(e) =>
-            setForm({ ...form, description: e.target.value })
-          }
-        />
+        {/* Title */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Title</label>
+          <Input
+            value={form.title}
+            onChange={(e) =>
+              setForm({ ...form, title: e.target.value })
+            }
+            placeholder="Enter assignment title"
+          />
+        </div>
 
-        <Input
-          type="number"
-          value={form.maxMarks}
-          onChange={(e) =>
-            setForm({ ...form, maxMarks: Number(e.target.value) })
-          }
-        />
+        {/* Description */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Description</label>
+          <Textarea
+            value={form.description}
+            onChange={(e) =>
+              setForm({ ...form, description: e.target.value })
+            }
+            placeholder="Enter assignment description"
+          />
+        </div>
 
-        <Input
-          type="datetime-local"
-          value={form.dueDate}
-          onChange={(e) =>
-            setForm({ ...form, dueDate: e.target.value })
-          }
-        />
+        {/* Max Marks */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Max Marks</label>
+          <Input
+            type="number"
+            value={form.maxMarks}
+            onChange={(e) =>
+              setForm({ ...form, maxMarks: Number(e.target.value) })
+            }
+            placeholder="Enter max marks"
+          />
+        </div>
 
-        <Button type="submit">Update</Button>
+        {/* Due Date */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Due Date</label>
+          <Input
+            type="datetime-local"
+            value={form.dueDate}
+            onChange={(e) =>
+              setForm({ ...form, dueDate: e.target.value })
+            }
+          />
+        </div>
+
+        <Button type="submit" className="w-full">
+          Update Assignment
+        </Button>
       </form>
     </div>
   );

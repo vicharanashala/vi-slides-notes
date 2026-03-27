@@ -82,6 +82,16 @@ export interface UpdateAssignmentData {
 export interface DeleteAssignmentResponse {
   message: string;
 }
+export interface AllSubmission {
+  assignmentTitle: string;
+  student: { fullname: string; email: string };
+  fileUrl: string;
+  submittedAt: string;
+}
+
+export interface AllSubmissionsResponse {
+  Submissions: AllSubmission[];
+}
 
 // -------- CLASS TYPES --------
 export interface Class {
