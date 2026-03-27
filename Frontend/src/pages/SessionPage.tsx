@@ -8,7 +8,7 @@ import { useParams, useNavigate } from "react-router-dom";
 
 import type { GetClassResponse } from "@/lib/api";
 import { getClassById } from "@/lib/api";
-
+import { useAuth } from "@/context/AuthContext";
 import { getSocket } from "@/lib/socket";
 
 const SessionPage = () => {
@@ -18,6 +18,15 @@ const SessionPage = () => {
   const [classData, setClassData] = useState<GetClassResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [sharedFile, setSharedFile] = useState<any | null>(null);
+
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [activeId, setActiveId] = useState<string>();
+
+  const activeQuestion = questions.find((q) => q.id === activeId);
+  
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!classId) return;
@@ -60,6 +69,32 @@ useEffect(() => {
     navigate("/dashboard");
   };
 
+  const handleNewFile = (file: any) => {
+  setSharedFile(file); // replace previous file
+};
+
+socket.on("new_file_shared", handleNewFile);
+
+  const handleAllQuestions = (data: any[]) => {
+    setQuestions(data);
+  };
+
+  const handleNewQuestion = (q: any) => {
+    setQuestions((prev) => [...prev, q]);
+  };
+
+  const handleQuestionAnswered = ({ questionId, answer }: any) => {
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId ? { ...q, answer } : q
+      )
+    );
+  };
+
+  socket.on("all_questions", handleAllQuestions);
+  socket.on("new_question", handleNewQuestion);
+  socket.on("question_answered", handleQuestionAnswered);
+
   const joinRoom = () => {
     socket.emit("join_class_room", { classId });
   };
@@ -82,6 +117,10 @@ useEffect(() => {
     socket.off("class_started", handleClassStarted);
     socket.off("class_ended", handleClassEnded);
     socket.off("connect", joinRoom);
+    socket.off("all_questions", handleAllQuestions);
+    socket.off("new_question", handleNewQuestion);
+    socket.off("question_answered", handleQuestionAnswered);
+    socket.off("new_file_shared", handleNewFile);
   };
 }, [classId, navigate]);
 
@@ -101,43 +140,77 @@ useEffect(() => {
     );
   }
 
+  
+
   return (
     <SidebarProvider>
       <AppSidebar
-        questions={[
-          { id: "1", title: "What is probability?" },
-          { id: "2", title: "Explain Bayes theorem" },
-        ]}
-        activeId="1"
-        onSelect={(id) => console.log(id)}
+        questions={questions}
+        activeId={activeId}
+        onSelect={setActiveId}
+        role={classData.instructor === user?._id ? "Instructor" : "Student"}
+        onAskQuestion={(text) => {
+          const socket = getSocket();
+          socket.emit("ask_question", {
+            classId,
+            question: text,
+          });
+        }}
+        onAnswerQuestion={(id, answer) => {
+          const socket = getSocket();
+          socket.emit("answer_question", {
+            classId,
+            questionId: id,
+            answer,
+          });
+        }}
       />
 
       <SidebarInset className="bg-transparent">
         <div className="min-h-screen flex flex-col">
           <Topbar
-            sessionName={classData.title}
-            code={classData.classCode}
-            classId={classData._id}
-          />
+  sessionName={classData.title}
+  code={classData.classCode}
+  classId={classData._id}
+  onShareFile={(file) => {
+    const socket = getSocket();
+    socket.emit("share_file", {
+      classId,
+      file,
+    });
+  }}
+/>
 
           <div className="flex-1 p-6">
-            <Card className="h-full card-glass p-6">
-              <p className="text-muted-foreground">
-                Question Content Here
-                {/* 
-                FEATURE: Role-based Question Interaction UI
+            <Card className="h-full flex flex-col p-4 gap-4">
 
-                Instructor View:
-                - Slideable question cards
-                - Answer + AI assist
-                - Mark resolved
+  {sharedFile ? (
+    <>
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b pb-2">
+        <h2 className="text-sm font-semibold truncate">
+          {sharedFile.name}
+        </h2>
+        <span className="text-xs text-muted-foreground">
+          Live Preview
+        </span>
+      </div>
 
-                Student View:
-                - Ask question
-                - Edit/Delete own question
-              */}
-              </p>
-            </Card>
+      {/* FILE VIEW */}
+      <div className="flex-1 w-full h-full bg-muted rounded overflow-hidden">
+        <iframe
+          src={sharedFile.url}
+          className="w-full h-full"
+        />
+      </div>
+    </>
+  ) : (
+    <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+      No content shared yet
+    </div>
+  )}
+
+</Card>
           </div>
         </div>
       </SidebarInset>

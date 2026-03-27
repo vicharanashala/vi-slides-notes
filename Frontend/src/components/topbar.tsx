@@ -3,12 +3,13 @@ import {
   EngagementButton,
   PulseButton,
   WhiteboardButton,
-  ExportButton,
+  ChooseFile,
   PollButton,
   LeaveButton,
   EndSessionButton,
 } from "../components/sessionbuttons";
 
+import { useRef } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { endClass } from "@/lib/api";
@@ -18,12 +19,14 @@ type TopbarProps = {
   sessionName: string;
   code: string;
   classId: string;
+  onShareFile: (file: any) => void;
 };
 
-export const Topbar = ({ sessionName, code, classId }: TopbarProps) => {
+export const Topbar = ({ sessionName, code, classId, onShareFile }: TopbarProps) => {
   const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleEndSession = async () => {
     try {
@@ -77,7 +80,36 @@ export const Topbar = ({ sessionName, code, classId }: TopbarProps) => {
       {/* ACTIONS */}
       {isInstructor && (
         <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-end w-full sm:w-auto">
-          <ExportButton />
+          {/* HIDDEN FILE INPUT */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              if (file.type !== "application/pdf") {
+                alert("Only PDF files are allowed");
+                e.target.value = "";
+                return;
+              }
+
+              const fileUrl = URL.createObjectURL(file);
+
+              onShareFile({
+                name: file.name,
+                url: fileUrl,
+                type: file.type,
+              });
+
+              e.target.value = "";
+            }}
+          />
+
+          {/* BUTTON */}
+          <ChooseFile onClick={() => fileInputRef.current?.click()} />
           <PauseButton />
           <EngagementButton />
           <PulseButton />

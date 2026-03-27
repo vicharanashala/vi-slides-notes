@@ -46,10 +46,10 @@ export const WhiteboardButton = ({ onClick }: ButtonProps) => (
   </Button>
 );
 
-export const ExportButton = ({ onClick }: ButtonProps) => (
+export const ChooseFile = ({ onClick }: ButtonProps) => (
   <Button onClick={onClick} className={btnStyle}>
     <FileDown size={16} />
-    <GradientText>Export</GradientText>
+    <GradientText>Choose PDF</GradientText>
   </Button>
 );
 

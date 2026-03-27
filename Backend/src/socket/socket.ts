@@ -5,6 +5,9 @@ import { socketAuth } from "./socketAuth";
 
 let io: Server;
 
+// Store questions per class
+const classQuestions = new Map<string, any[]>();
+
 export const initSocket = (server: http.Server) => {
   io = new Server(server, {
     cors: {
@@ -13,107 +16,157 @@ export const initSocket = (server: http.Server) => {
     },
   });
 
-  // Apply auth middleware
   io.use(socketAuth);
 
   io.on("connection", (socket: Socket) => {
     console.log("User connected:", socket.id);
 
-    // ---------------- JOIN CLASS ROOM ----------------
+    // ---------------- JOIN CLASS ROOM (MERGED) ----------------
     socket.on("join_class_room", async ({ classId }) => {
       try {
         const user = socket.data.user;
+
+        // Prevent duplicate join
         if (socket.rooms.has(classId)) {
-          // skip if already joined
-          console.log(`User ${user._id} already in room ${classId}, skipping`);
+          console.log(`User ${user._id} already in room ${classId}`);
           return;
         }
-        const classObj = await classModel.findById(classId);
 
+        const classObj = await classModel.findById(classId);
         if (!classObj) {
           return socket.emit("error", "Class not found");
         }
 
-        // Check instructor OR participant
         const isInstructor =
           classObj.instructor.toString() === user._id.toString();
 
         const isParticipant = classObj.participants.some(
-          (id) => id.toString() === user._id.toString(),
+          (id) => id.toString() === user._id.toString()
         );
 
         if (!isInstructor && !isParticipant) {
           return socket.emit("error", "Not authorized");
         }
 
-        // Check if class is live
         if (!classObj.isLive) {
           return socket.emit("error", "Class not live");
         }
 
         // Join room
         socket.join(classId);
-
         socket.data.classId = classId;
 
         console.log(`User ${user._id} joined class ${classId}`);
 
+        // INIT QUESTIONS ARRAY
+        if (!classQuestions.has(classId)) {
+          classQuestions.set(classId, []);
+        }
+
+        // SEND EXISTING QUESTIONS TO NEW USER
+        socket.emit("all_questions", classQuestions.get(classId));
+
+        // Notify others
         socket.to(classId).emit("user_joined", {
           userId: user._id,
         });
+
       } catch (err) {
-        console.log("Join error:", err);
+        console.error("Join error:", err);
         socket.emit("error", "Internal server error");
       }
     });
 
-    // ---------------- START CLASS ----------------
-    socket.on("start_class", async ({ classId }) => {
+    // ---------------- ASK QUESTION ----------------
+    socket.on("ask_question", ({ classId, question }) => {
+      const user = socket.data.user;
+
+      if (!classQuestions.has(classId)) return;
+
+      const questions = classQuestions.get(classId)!;
+
+      const newQuestion = {
+        id: Date.now(),
+        question,
+        studentId: user._id,
+        answer: null,
+      };
+
+      questions.push(newQuestion);
+
+      io.to(classId).emit("new_question", newQuestion);
+    });
+
+    // ---------------- ANSWER QUESTION ----------------
+    socket.on("answer_question", ({ classId, questionId, answer }) => {
       const user = socket.data.user;
 
       if (user.role !== "Instructor") {
-        return socket.emit("error", "Only instructor can start class");
+        return socket.emit("error", "Only instructor can answer");
       }
 
-      // Verify ownership before broadcasting
-      const classObj = await classModel.findById(classId);
-      if (!classObj || classObj.instructor.toString() !== user._id.toString()) {
-        return socket.emit("error", "Not authorized");
-      }
+      const questions = classQuestions.get(classId);
+      if (!questions) return;
 
-      socket.to(classId).emit("class_started", { classId });
+      const updated = questions.map((q) =>
+        q.id === questionId ? { ...q, answer } : q
+      );
+
+      classQuestions.set(classId, updated);
+
+      io.to(classId).emit("question_answered", {
+        questionId,
+        answer,
+      });
     });
 
     // ---------------- END CLASS ----------------
     socket.on("end_class", async ({ classId }) => {
-      const user = socket.data.user;
+      try {
+        const user = socket.data.user;
 
-      if (user.role !== "Instructor") {
-        return socket.emit("error", "Only instructor can end class");
+        if (user.role !== "Instructor") {
+          return socket.emit("error", "Only instructor can end class");
+        }
+
+        const classObj = await classModel.findById(classId);
+
+        if (
+          !classObj ||
+          classObj.instructor.toString() !== user._id.toString()
+        ) {
+          return socket.emit("error", "Not authorized");
+        }
+
+        // Update DB
+        classObj.isLive = false;
+        await classObj.save();
+
+        // Notify all users
+        io.to(classId).emit("class_ended", { classId });
+
+        // Force leave room
+        const sockets = await io.in(classId).fetchSockets();
+
+        sockets.forEach((s) => {
+          s.leave(classId);
+          s.data.classId = null;
+        });
+
+        // Clear memory
+        classQuestions.delete(classId);
+
+        console.log(`Class ${classId} ended`);
+
+      } catch (err) {
+        console.error("End class error:", err);
+        socket.emit("error", "Internal server error");
       }
+    });
 
-      const classObj = await classModel.findById(classId);
-
-      if (!classObj || classObj.instructor.toString() !== user._id.toString()) {
-        return socket.emit("error", "Not authorized");
-      }
-
-      // Update DB
-      classObj.isLive = false;
-      await classObj.save();
-
-      // Notify all users
-      io.to(classId).emit("class_ended", { classId });
-
-      // 🔥 Force everyone to leave room
-      const sockets = await io.in(classId).fetchSockets();
-
-      sockets.forEach((s) => {
-        s.leave(classId);
-        s.data.classId = null;
-      });
-
-      console.log(`Class ${classId} ended, all users removed`);
+    // ---------------- SHARE FILE ----------------
+    socket.on("share_file", ({ classId, file }) => {
+      io.to(classId).emit("new_file_shared", file);
     });
 
     // ---------------- DISCONNECT ----------------
