@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
-  Pause,
-  BarChart,
-  Flame,
+  Monitor,
+  MonitorOff,
   Presentation,
   FileDown,
   Vote,
@@ -18,24 +17,17 @@ const GradientText = ({ children }: { children: React.ReactNode }) => (
 
 const btnStyle = "h-10 px-4 text-sm font-semibold gap-2";
 
-export const PauseButton = ({ onClick }: ButtonProps) => (
+export const ShareScreen = ({ onClick }: ButtonProps) => (
   <Button onClick={onClick} className={btnStyle}>
-    <Pause size={16} />
-    <GradientText>Pause</GradientText>
+    <Monitor size={16} />
+    <GradientText>Share Screen</GradientText>
   </Button>
 );
 
-export const EngagementButton = ({ onClick }: ButtonProps) => (
+export const StopShare = ({ onClick }: ButtonProps) => (
   <Button onClick={onClick} className={btnStyle}>
-    <BarChart size={16} />
-    <GradientText>Engagement</GradientText>
-  </Button>
-);
-
-export const PulseButton = ({ onClick }: ButtonProps) => (
-  <Button onClick={onClick} className={btnStyle}>
-    <Flame size={16} />
-    <GradientText>Pulse Check</GradientText>
+    <MonitorOff size={16} />
+    <GradientText>Stop Share</GradientText>
   </Button>
 );
 
