@@ -1,35 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ListTodo, ClipboardList } from "lucide-react";
+import { ListTodo, ClipboardList, Trash } from "lucide-react";
 
-export type Assignment = {
-  id: string;
-  title: string;
-  description: string;
-  maxMarks: number;
-  deadline: string;
-  createdAt: string;
-};
-
-let assignmentStore: Assignment[] = [];
-export function getAssignments() { return assignmentStore; }
-export function addAssignment(a: Omit<Assignment, "id" | "createdAt">) {
-  const newA: Assignment = { ...a, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  assignmentStore = [newA, ...assignmentStore];
-  return newA;
-}
-export function deleteAssignment(id: string) {
-  assignmentStore = assignmentStore.filter((a) => a.id !== id);
-}
+import {
+  getAssignments,
+  createAssignment,
+  deleteAssignment as deleteAssignmentAPI,
+} from "@/lib/api";
 
 export default function TeacherAssignments() {
   const navigate = useNavigate();
-  const [assignments, setAssignments] = useState<Assignment[]>(getAssignments());
+
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -37,21 +32,66 @@ export default function TeacherAssignments() {
   const [deadline, setDeadline] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setIsSubmitting(true);
-    addAssignment({ title, description, maxMarks: Number(maxMarks), deadline });
-    setAssignments(getAssignments());
-    setTitle(""); setDescription(""); setMaxMarks("100"); setDeadline("");
-    setShowCreate(false);
-    setIsSubmitting(false);
+  // 🔄 FETCH
+  const fetchAssignments = async () => {
+    try {
+      const res = await getAssignments();
+      setAssignments(res.data.assignments);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load assignments");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  // ➕ CREATE
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      await createAssignment({
+        title,
+        description,
+        maxMarks: Number(maxMarks),
+        dueDate: deadline,
+      });
+
+      await fetchAssignments();
+
+      setTitle("");
+      setDescription("");
+      setMaxMarks("100");
+      setDeadline("");
+      setShowCreate(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create assignment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 🗑️ DELETE
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    deleteAssignment(id);
-    setAssignments(getAssignments());
+
+    if (!confirm("Delete this assignment?")) return;
+
+    try {
+      await deleteAssignmentAPI(id);
+      await fetchAssignments();
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
   };
 
   return (
@@ -59,13 +99,18 @@ export default function TeacherAssignments() {
       <div className="h-20 mb-6" />
       <div className="max-w-5xl mx-auto">
 
-        {/* Header Card — mirrors the Welcome Card style */}
+        {/* HEADER */}
         <Card className="mb-6 border border-foreground/10 bg-card/80 rounded-2xl shadow-xl">
           <CardContent className="p-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-extrabold text-gradient mb-1">Assignments</h1>
-              <p className="text-muted-foreground text-sm">Manage and grade student assignments.</p>
+              <h1 className="text-3xl font-extrabold text-gradient mb-1">
+                Assignments
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Manage and grade student assignments.
+              </p>
             </div>
+
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -74,6 +119,7 @@ export default function TeacherAssignments() {
               >
                 ← Back to Dashboard
               </Button>
+
               <Button
                 className="h-10 px-4 text-sm font-semibold border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
                 onClick={() => setShowCreate((v) => !v)}
@@ -84,20 +130,25 @@ export default function TeacherAssignments() {
           </CardContent>
         </Card>
 
-        {/* Create Form Card — mirrors Start Session Card style */}
+        {/* CREATE FORM */}
         {showCreate && (
           <Card className="mb-6 border border-foreground/10 bg-card/80 rounded-2xl shadow-xl">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <ClipboardList className="w-4 h-4" />
-                <span className="text-gradient">Create New Assignment</span>
+                <span className="text-gradient">
+                  Create New Assignment
+                </span>
               </CardTitle>
+
               <CardDescription className="text-xs text-muted-foreground">
-                Fill in the details to create a new assignment for your class.
+                Fill in the details to create a new assignment.
               </CardDescription>
             </CardHeader>
+
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-3">
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">
                     <span className="text-gradient">Title</span>
@@ -110,6 +161,7 @@ export default function TeacherAssignments() {
                     required
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">
                     <span className="text-gradient">Description</span>
@@ -121,6 +173,7 @@ export default function TeacherAssignments() {
                     className="text-sm bg-muted/50 border border-foreground/10 rounded-md resize-none min-h-[80px]"
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">
@@ -131,9 +184,9 @@ export default function TeacherAssignments() {
                       value={maxMarks}
                       onChange={(e) => setMaxMarks(e.target.value)}
                       className="h-9 text-sm bg-muted/50 border border-foreground/10 rounded-md"
-                      min={1}
                     />
                   </div>
+
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">
                       <span className="text-gradient">Deadline</span>
@@ -146,6 +199,7 @@ export default function TeacherAssignments() {
                     />
                   </div>
                 </div>
+
                 <Button
                   type="submit"
                   disabled={isSubmitting}
@@ -160,53 +214,68 @@ export default function TeacherAssignments() {
           </Card>
         )}
 
-        {/* Assignments List or Empty State */}
-        {assignments.length === 0 ? (
+        {/* LIST */}
+        {loading ? (
+          <p className="text-center text-muted-foreground">Loading...</p>
+        ) : assignments.length === 0 ? (
           <Card className="border border-foreground/10 bg-card/80 rounded-2xl shadow-xl">
             <CardContent className="flex flex-col items-center justify-center py-24 gap-3">
               <span className="text-6xl">📝</span>
-              <h2 className="text-lg font-bold text-foreground">No assignments yet</h2>
-              <p className="text-sm text-muted-foreground">Create your first assignment to get started!</p>
+              <h2 className="text-lg font-bold">No assignments yet</h2>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
             {assignments.map((a) => (
               <Card
-                key={a.id}
+                key={a._id}
                 className="border border-foreground/10 bg-card/80 rounded-2xl shadow-xl cursor-pointer hover:border-foreground/30 transition-all"
-                onClick={() => navigate(`/assignments/${a.id}`)}
+                onClick={() => navigate(`/assignments/${a._id}`)}
               >
                 <CardContent className="flex items-center justify-between p-5">
+
                   <div className="flex items-start gap-3">
                     <ListTodo className="w-4 h-4 mt-1 text-muted-foreground" />
+
                     <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-sm text-gradient">{a.title}</span>
+                      <span className="font-semibold text-sm text-gradient">
+                        {a.title}
+                      </span>
+
                       <span className="text-xs text-muted-foreground line-clamp-1">
                         {a.description || "No description"}
                       </span>
+
                       <div className="flex gap-3 mt-0.5">
                         <span className="text-xs text-muted-foreground">
-                          Max Marks: <span className="text-foreground font-medium">{a.maxMarks}</span>
+                          Max Marks:
+                          <span className="text-foreground font-medium ml-1">
+                            {a.maxMarks}
+                          </span>
                         </span>
-                        {a.deadline && (
+
+                        {a.dueDate && (
                           <span className="text-xs text-muted-foreground">
-                            Due: <span className="text-foreground font-medium">
-                              {new Date(a.deadline).toLocaleString()}
+                            Due:
+                            <span className="text-foreground font-medium ml-1">
+                              {new Date(a.dueDate).toLocaleString()}
                             </span>
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
+
+                  {/* DELETE ICON BUTTON */}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10 text-xs"
-                    onClick={(e) => handleDelete(a.id, e)}
+                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                    onClick={(e) => handleDelete(a._id, e)}
                   >
-                    Delete
+                    <Trash className="w-4 h-4" />
                   </Button>
+
                 </CardContent>
               </Card>
             ))}

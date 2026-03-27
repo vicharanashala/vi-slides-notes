@@ -5,12 +5,13 @@ import { ThemeProvider } from "next-themes";
 import Dashboard from "./pages/Dashboard";
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Assignment from "./pages/Assignment";
-import AssignmentDetail from "./pages/AssignmentDetail";
+import Assignment from "./pages/StudentAssignments";
+import AssignmentDetail from "./pages/StudentAssignmentDetail";
 import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherAssignmentDetail from "./pages/TeacherAssignmentDetail";
 import EditProfile from "./pages/EditProfile";
 import SessionPage from "./pages/SessionPage";
+import TeacherAssignmentEdit from "./pages/TeacherAssignmentEdit";
 import TodoPage from "./pages/todo-page";
 
 function App() {
@@ -97,6 +98,8 @@ function App() {
             }
           />
           <Route
+             path="/assignments/edit/:id" 
+             element={<TeacherAssignmentEdit />} 
             path="/todos"
             element={
               <ProtectedRoute>

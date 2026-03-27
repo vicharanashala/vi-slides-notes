@@ -67,6 +67,32 @@ export interface SubmitResponse {
   assignment: Assignment;
 }
 
+export interface CreateAssignmentData {
+  title: string;
+  description: string;
+  dueDate: string;
+  maxMarks: number;
+}
+export interface UpdateAssignmentData {
+  title?: string;
+  description?: string;
+  dueDate?: string;
+  maxMarks?: number;
+}
+export interface DeleteAssignmentResponse {
+  message: string;
+}
+export interface AllSubmission {
+  assignmentTitle: string;
+  student: { fullname: string; email: string };
+  fileUrl: string;
+  submittedAt: string;
+}
+
+export interface AllSubmissionsResponse {
+  Submissions: AllSubmission[];
+}
+
 // -------- CLASS TYPES --------
 export interface Class {
   _id: string;
@@ -108,6 +134,15 @@ export interface GetClassResponse {
   updatedAt: string;
 }
 
+export interface AllSubmissionsResponse {
+  submissions: {
+    assignmentTitle: string;
+    student: { fullname: string; email: string };
+    fileUrl: string;
+    submittedAt: string;
+  }[];
+}
+
 // -------- AXIOS INSTANCE --------
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
@@ -138,15 +173,26 @@ export const updateUserAccount = (data: UpdateUserData) =>
   api.put<UpdateUserResponse>("/auth/user/update", data);
 
 // -------- ASSIGNMENTS --------
+// (both specific)
 export const getAssignments = () =>
   api.get<AssignmentsResponse>("/assignments");
 export const getSingleAssignment = (id: string) =>
   api.get<AssignmentResponse>(`/assignments/${id}`);
+
+// (Student specific)
 export const submitAssignment = (id: string, fileUrl: string) =>
   api.post<SubmitResponse>(`/assignments/${id}/submit`, { fileUrl });
 
+// (Instructor specific)
+export const createAssignment = (data: CreateAssignmentData) =>
+  api.post<AssignmentResponse>("/assignments", data);
+export const updateAssignment = (id: string, data: UpdateAssignmentData) =>
+  api.put<AssignmentResponse>(`/assignments/${id}`, data);
+export const deleteAssignment = (id: string) =>
+  api.delete<DeleteAssignmentResponse>(`/assignments/${id}`);
+export const getAllSubmissions = () =>
+  api.get<AllSubmissionsResponse>("/assignments/submissions/all");
 export default api;
-
 
 // -------- CLASS --------
 
