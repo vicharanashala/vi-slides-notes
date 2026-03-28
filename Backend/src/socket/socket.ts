@@ -8,6 +8,9 @@ let io: Server;
 // Store questions per class
 const classQuestions = new Map<string, any[]>();
 
+// Store active polls per class
+const classPolls = new Map<string, any>();
+
 export const initSocket = (server: http.Server) => {
   io = new Server(server, {
     cors: {
@@ -161,6 +164,96 @@ export const initSocket = (server: http.Server) => {
         questionId,
         answer,
       });
+    });
+
+    // ============= POLL EVENTS =============
+
+    // Teacher creates and launches a poll
+    socket.on("create_poll", ({ classId, question, options }) => {
+      const user = socket.data.user;
+
+      if (user.role !== "Instructor") {
+        return socket.emit("error", "Only instructors can create polls");
+      }
+
+      const newPoll = {
+        id: Date.now(),
+        question,
+        options,
+        responses: {},
+        createdBy: user._id,
+        isActive: true,
+      };
+
+      classPolls.set(classId, newPoll);
+
+      io.to(classId).emit("poll_launched", newPoll);
+    });
+
+    // Student submits a poll response
+    socket.on("submit_poll_response", ({ classId, pollId, selectedOption }) => {
+      const user = socket.data.user;
+      const poll = classPolls.get(classId);
+
+      if (!poll || poll.id !== pollId) {
+        return socket.emit("error", "Poll not found or expired");
+      }
+
+      // ✅ CHECK IF USER ALREADY VOTED
+      const alreadyVoted = Object.values(poll.responses)
+        .flat()
+        .includes(user._id);
+
+      if (alreadyVoted) {
+        return socket.emit("error", "Already voted");
+      }
+
+      if (!poll.responses[selectedOption]) {
+        poll.responses[selectedOption] = [];
+      }
+
+      // ✅ NOW SAFE TO PUSH
+      poll.responses[selectedOption].push(user._id);
+
+      io.to(classId).emit("poll_response_submitted", {
+        pollId,
+        selectedOption,
+        totalResponses: Object.values(poll.responses).flat().length,
+      });
+    });
+
+    // Teacher closes poll
+    socket.on("close_poll", ({ classId, pollId }) => {
+      const user = socket.data.user;
+      const poll = classPolls.get(classId);
+
+      if (user.role !== "Instructor") {
+        return socket.emit("error", "Only instructors can close polls");
+      }
+
+      if (!poll || poll.id !== pollId) {
+        return socket.emit("error", "Poll not found");
+      }
+
+      poll.isActive = false;
+
+      const total = Object.values(poll.responses).flat().length || 1;
+
+      const stats = poll.options.map((option: string, index: number) => ({
+        option,
+        count: poll.responses[index]?.length || 0,
+        percentage: (
+          ((poll.responses[index]?.length || 0) / total) * 100
+        ).toFixed(1),
+      }));
+
+      io.to(classId).emit("poll_closed", {
+        pollId,
+        statistics: stats,
+        question: poll.question,
+      });
+
+      classPolls.delete(classId);
     });
 
     socket.on("end_class", async ({ classId }) => {
