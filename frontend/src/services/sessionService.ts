@@ -1,12 +1,11 @@
 import api from './api';
+import type { Question } from './questionService';
 
 export interface Session {
     _id: string;
     title: string;
     description?: string;
     code: string;
-    qrCodeDataUrl?: string; // Base64 QR code image
-    joinUrl?: string; // URL for joining
     teacher: any;
     students: any[];
     attendance?: {
@@ -16,9 +15,17 @@ export interface Session {
         joinTime: string;
         leaveTime?: string;
     }[];
-    status: 'active' | 'inactive' | 'ended' | 'paused';
+    chatMessages?: {
+        senderId?: string;
+        senderName: string;
+        senderRole?: 'teacher' | 'student';
+        message: string;
+        createdAt: string;
+    }[];
+    status: 'active' | 'ended';
     endedAt?: string;
     createdAt: string;
+    questions?: Question[];
 }
 
 export interface CreateSessionData {
@@ -58,19 +65,11 @@ export const sessionService = {
             _id: string;
             title: string;
             code: string;
-            questionCount: number;
-            duration: number;
-            moodSummary: string;
+            endedAt: string;
         };
         message: string
     }> => {
         const response = await api.patch(`/sessions/${id}/end`);
-        return response.data;
-    },
-
-    // Pause/Resume a session (Teacher)
-    pauseSession: async (id: string): Promise<{ success: boolean; status: string; message: string }> => {
-        const response = await api.patch(`/sessions/${id}/pause`);
         return response.data;
     },
 
@@ -86,15 +85,9 @@ export const sessionService = {
         return response.data;
     },
 
-    // Get or create persistent query session (Teacher)
-    getQuerySession: async (): Promise<{ success: boolean; data: Session }> => {
-        const response = await api.get('/sessions/query-mode');
-        return response.data;
-    },
-
-    // Update custom query URL (Teacher)
-    updateQueryUrl: async (url: string): Promise<{ success: boolean; data: Session }> => {
-        const response = await api.patch('/sessions/query-mode/url', { url });
+    // Get ended session history with questions and answers
+    getSessionHistory: async (): Promise<{ success: boolean; data: Session[] }> => {
+        const response = await api.get('/sessions/history');
         return response.data;
     }
 };

@@ -6,12 +6,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import SessionView from './pages/SessionView';
-import SessionSummary from './pages/SessionSummary';
 import Assignments from './pages/Assignments';
 import AssignmentDetails from './pages/AssignmentDetails';
 import GuestJoinForm from './pages/GuestJoinForm';
-import QueryPPTView from './pages/QueryPPTView';
-import QueryAsk from './pages/QueryAsk';
 
 const App: React.FC = () => {
     return (
@@ -20,9 +17,7 @@ const App: React.FC = () => {
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    {/* Public route for guest join and query ask */}
                     <Route path="/join/:code" element={<GuestJoinForm />} />
-                    <Route path="/ask/:code" element={<QueryAsk />} />
                     <Route
                         path="/dashboard"
                         element={
@@ -40,14 +35,6 @@ const App: React.FC = () => {
                         }
                     />
                     <Route
-                        path="/session/:code/summary"
-                        element={
-                            <ProtectedRoute>
-                                <SessionSummary />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
                         path="/assignments"
                         element={
                             <ProtectedRoute>
@@ -60,14 +47,6 @@ const App: React.FC = () => {
                         element={
                             <ProtectedRoute>
                                 <AssignmentDetails />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/query-mode"
-                        element={
-                            <ProtectedRoute>
-                                <QueryPPTView />
                             </ProtectedRoute>
                         }
                     />

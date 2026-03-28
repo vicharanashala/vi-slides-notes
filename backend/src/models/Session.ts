@@ -4,8 +4,6 @@ export interface ISession extends Document {
     title: string;
     description?: string;
     code: string; // Unique 6-character code
-    qrCodeDataUrl?: string; // Base64 QR code image
-    joinUrl?: string; // The URL encoded in the QR code
     teacher: mongoose.Types.ObjectId;
     students: mongoose.Types.ObjectId[];
     attendance: {
@@ -15,11 +13,15 @@ export interface ISession extends Document {
         joinTime: Date;
         leaveTime?: Date;
     }[];
-    status: 'active' | 'inactive' | 'ended' | 'paused';
-    isQuerySession?: boolean;
-    customQueryUrl?: string;
+    chatMessages: {
+        senderId?: mongoose.Types.ObjectId;
+        senderName: string;
+        senderRole?: 'teacher' | 'student';
+        message: string;
+        createdAt: Date;
+    }[];
+    status: 'active' | 'ended';
     endedAt?: Date;
-    moodSummary?: string;
     createdAt: Date;
 }
 
@@ -42,12 +44,6 @@ const sessionSchema = new Schema<ISession>({
         uppercase: true,
         trim: true
     },
-    qrCodeDataUrl: {
-        type: String
-    },
-    joinUrl: {
-        type: String
-    },
     teacher: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -64,24 +60,20 @@ const sessionSchema = new Schema<ISession>({
         joinTime: { type: Date, default: Date.now },
         leaveTime: Date
     }],
+    chatMessages: [{
+        senderId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
+        senderName: { type: String, required: true, trim: true },
+        senderRole: { type: String, enum: ['teacher', 'student'], required: false },
+        message: { type: String, required: true, trim: true, maxlength: 1000 },
+        createdAt: { type: Date, default: Date.now }
+    }],
     status: {
         type: String,
-        enum: ['active', 'inactive', 'ended', 'paused'],
+        enum: ['active', 'ended'],
         default: 'active'
-    },
-    isQuerySession: {
-        type: Boolean,
-        default: false
-    },
-    customQueryUrl: {
-        type: String,
-        trim: true
     },
     endedAt: {
         type: Date
-    },
-    moodSummary: {
-        type: String
     },
     createdAt: {
         type: Date,

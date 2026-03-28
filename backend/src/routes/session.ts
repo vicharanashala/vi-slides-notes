@@ -6,11 +6,9 @@ import {
     getSessionDetails,
     endSession,
     getActiveSession,
-    pauseSession,
     leaveSession,
     getStudentSessions,
-    getOrCreateQuerySession,
-    updateQueryUrl
+    getSessionHistory
 } from '../controllers/sessionController';
 import { protect, authorize } from '../middleware/auth';
 
@@ -27,6 +25,10 @@ router.get('/current/active', getActiveSession);
 // @desc    Get student session history
 router.get('/student/history', getStudentSessions);
 
+// @route   GET /api/sessions/history
+// @desc    Get past session history for current user
+router.get('/history', getSessionHistory);
+
 // @route   POST /api/sessions
 // @desc    Create a session (Teacher)
 router.post(
@@ -37,14 +39,6 @@ router.post(
     ],
     createSession
 );
-
-// @route   GET /api/sessions/query-mode
-// @desc    Get or create teacher's query session
-router.get('/query-mode', authorize('Teacher'), getOrCreateQuerySession);
-
-// @route   PATCH /api/sessions/query-mode/url
-// @desc    Update custom query URL
-router.patch('/query-mode/url', authorize('Teacher'), updateQueryUrl);
 
 // @route   POST /api/sessions/join
 // @desc    Join a session (Both Student and Teacher)
@@ -63,10 +57,6 @@ router.get('/:code', getSessionDetails);
 // @route   PATCH /api/sessions/:id/end
 // @desc    End a session (Teacher)
 router.patch('/:id/end', authorize('Teacher'), endSession);
-
-// @route   PATCH /api/sessions/:id/pause
-// @desc    Pause/Resume a session (Teacher)
-router.patch('/:id/pause', authorize('Teacher'), pauseSession);
 
 // @route   POST /api/sessions/:code/leave
 // @desc    Leave a session
