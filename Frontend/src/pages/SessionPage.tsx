@@ -92,21 +92,26 @@ const SessionPage = () => {
   // ================== STREAM HELPERS ==================
  const handleStreamStarted = async (stream: MediaStream) => {
   localStream.current = stream;
+  const socket = getSocket();
 
   for (const [studentId, pc] of Object.entries(peerConnections.current)) {
-    const newVideoTrack = stream.getVideoTracks()[0];
-    if (!newVideoTrack) return;
-    const videoSender = pc.getSenders().find(
-      (sender) => sender.track && sender.track.kind === "video"
-    );
+    const videoTrack = stream.getVideoTracks()[0];
+    if (!videoTrack) continue;
+
+    // Check if we already have a video sender to replace, otherwise add new
+    const videoSender = pc.getSenders().find(s => s.track?.kind === "video");
+
     if (videoSender) {
-      await videoSender.replaceTrack(newVideoTrack);
-      console.log("🎥 Replaced video track for:", studentId);
+      await videoSender.replaceTrack(videoTrack);
     } else {
-      pc.addTrack(newVideoTrack, stream);
-      console.log("🎥 Added video track for:", studentId);
+      pc.addTrack(videoTrack, stream);
     }
-    console.log("🎤 Audio remains unchanged for:", studentId);
+
+    // CRITICAL: Re-negotiate so the student detects the new track
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("webrtc_offer", { to: studentId, offer });
+    console.log("🔄 Re-negotiated offer sent to:", studentId);
   }
 };
 
@@ -234,26 +239,16 @@ const SessionPage = () => {
       console.log("✅ Offer sent to student:", studentId);
     };
 
-   const handleOffer = async ({
-  offer,
-  from,
-}: {
-  offer: RTCSessionDescriptionInit;
-  from: string;
-}) => {
+   const handleOffer = async ({ offer, from }: { offer: RTCSessionDescriptionInit; from: string; }) => {
   if (isTeacher) return;
 
+  // Use existing connection if available, otherwise create new
   let pc = pcRef.current;
-
-  // ================= CREATE PEER CONNECTION =================
   if (!pc || pc.signalingState === "closed") {
     pc = new RTCPeerConnection(rtcConfig);
     pcRef.current = pc;
-
+    
     pc.ontrack = (event) => {
-      console.log("✅ Track received:", event.track.kind);
-
-      // ================= AUDIO =================
       if (event.track.kind === "audio") {
         let audioEl = document.getElementById("teacher-audio") as HTMLAudioElement;
 
@@ -293,39 +288,26 @@ const SessionPage = () => {
       }
       if (event.track.kind === "video" && videoRef.current) {
         videoRef.current.srcObject = event.streams[0];
-        console.log("✅ Video stream set");
       }
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit("webrtc_ice_candidate", {
-          to: from,
-          candidate: event.candidate,
-        });
+        socket.emit("webrtc_ice_candidate", { to: from, candidate: event.candidate });
       }
     };
   }
 
   try {
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-    // Add queued ICE candidates
-    iceQueue.current.forEach((c) =>
-      pc!.addIceCandidate(new RTCIceCandidate(c))
-    );
+    
+    // Process queued ICE candidates
+    iceQueue.current.forEach((c) => pc!.addIceCandidate(new RTCIceCandidate(c)));
     iceQueue.current = [];
 
-    if (pc.signalingState === "have-remote-offer") {
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit("webrtc_answer", { to: from, answer });
-      console.log("✅ Answer sent to teacher");
-    } else {
-      console.warn("⚠️ Skipping answer, wrong state:", pc.signalingState);
-    }
-
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit("webrtc_answer", { to: from, answer });
   } catch (err) {
     console.error("❌ Handle offer error:", err);
   }
