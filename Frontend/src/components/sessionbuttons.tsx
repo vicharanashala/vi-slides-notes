@@ -6,6 +6,7 @@ import {
   FileDown,
   Vote,
 } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 
 type ButtonProps = {
   onClick?: () => void;
@@ -49,6 +50,13 @@ export const PollButton = ({ onClick }: ButtonProps) => (
   <Button onClick={onClick} className={btnStyle}>
     <Vote size={16} />
     <GradientText>Poll</GradientText>
+  </Button>
+);
+
+export const MicButton = ({ onClick, isMicOn }: { onClick?: () => void; isMicOn: boolean }) => (
+  <Button onClick={onClick} className={btnStyle}>
+    {isMicOn ? <Mic size={16} /> : <MicOff size={16} />}
+    <GradientText>{isMicOn ? "Mic On" : "Mic Off"}</GradientText>
   </Button>
 );
 

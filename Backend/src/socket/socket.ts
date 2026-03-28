@@ -79,12 +79,9 @@ export const initSocket = (server: http.Server) => {
     // ---------------- 📺 SCREEN SHARE & RENEGOTIATION ----------------
 
     socket.on("class_started", ({ classId }) => {
-      // 1. Notify students that the UI should show the video container
       socket.to(classId).emit("class_started");
 
-      // 2. CRITICAL: Ask all students in the room to "re-join" the WebRTC flow
-      // This forces the 'student_joined' logic on the teacher's frontend for everyone currently present.
-      socket.to(classId).emit("request_renegotiation", { teacherId: socket.id });
+      
     });
 
     // Students respond to 'request_renegotiation' by emitting this
@@ -121,6 +118,11 @@ export const initSocket = (server: http.Server) => {
           from: socket.id,
         });
       }
+    });
+    
+    // ---------------- 🎙️ MIC TOGGLE ----------------
+    socket.on("mic_toggle", ({ classId, isMicOn }) => {
+      socket.to(classId).emit("mic_toggle", { isMicOn });
     });
 
     // ---------------- QUESTIONS & CLASS MGMT ----------------
