@@ -90,7 +90,7 @@ function App() {
             }
           />
           <Route
-            path="session/:classId"
+            path="/session/:classId"
             element={
               <ProtectedRoute>
                 <SessionPage />
@@ -98,8 +98,14 @@ function App() {
             }
           />
           <Route
-             path="/assignments/edit/:id" 
-             element={<TeacherAssignmentEdit />} 
+            path="/assignments/edit/:id"
+            element={
+              <ProtectedRoute>
+                <TeacherAssignmentEdit />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/todos"
             element={
               <ProtectedRoute>

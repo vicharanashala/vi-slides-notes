@@ -228,7 +228,8 @@ export interface Todo {
   _id: string;
   title: string;
   description: string;
-  completed: boolean;
+  dueDate: string;   
+  completed: boolean; 
   createdAt: string;
   updatedAt: string;
 }
@@ -239,7 +240,8 @@ export interface TodosResponse {
 
 export interface CreateTodoRequest {
   title: string;
-  description: string;
+  description?: string;
+  dueDate?: string;
 }
 
 export interface UpdateTodoRequest {

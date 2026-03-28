@@ -14,6 +14,7 @@ import { BookOpen } from "lucide-react";
 import { AssignmentsCard } from "./assignments-card";
 import { useNavigate } from "react-router-dom";
 import { createClass, startClass } from "@/lib/api";
+import TodoButton from "@/components/todo-button";
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
@@ -21,47 +22,47 @@ export default function TeacherDashboard() {
   const [sessionTitle, setSessionTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-const handleCreateSession = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleCreateSession = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (isCreating) return;
+    if (isCreating) return;
 
-  if (!sessionTitle.trim()) {
-    alert("Please enter a session title");
-    return;
-  }
-
-  setIsCreating(true);
-
-  try {
-    // 1. Create class
-    const createRes = await createClass(sessionTitle);
-    const newClass = createRes.data?.data;
-
-    if (!newClass?._id) {
-      throw new Error("Invalid class response");
+    if (!sessionTitle.trim()) {
+      alert("Please enter a session title");
+      return;
     }
 
-    // 2. Start class
-    await startClass(newClass._id);
+    setIsCreating(true);
 
-    // 3. Reset + Navigate
-    setSessionTitle("");
-    navigate(`/session/${newClass._id}`);
+    try {
+      // 1. Create class
+      const createRes = await createClass(sessionTitle);
+      const newClass = createRes.data?.data;
 
-  } catch (error: any) {
-    console.error("Failed to create session:", error);
+      if (!newClass?._id) {
+        throw new Error("Invalid class response");
+      }
 
-    const message =
-      error?.response?.data?.message ||
-      error?.message ||
-      "Failed to start session";
+      // 2. Start class
+      await startClass(newClass._id);
 
-    alert(message);
-  } finally {
-    setIsCreating(false);
-  }
-};
+      // 3. Reset + Navigate
+      setSessionTitle("");
+      navigate(`/session/${newClass._id}`);
+    } catch (error: any) {
+      console.error("Failed to create session:", error);
+
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to start session";
+
+      alert(message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     // Only control padding and height, let global body handle background!
     <div className="min-h-screen p-6">
@@ -70,12 +71,20 @@ const handleCreateSession = async (e: React.FormEvent) => {
       {/* Welcome Card */}
       <Card className="mb-6 border border-foreground/10 bg-card/80 max-w-5xl mx-auto rounded-2xl shadow-xl">
         <CardContent className="p-6">
-          <h1 className="text-3xl font-extrabold text-gradient mb-1">
-            Welcome, {user?.fullname}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Ready to interact with your students?
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold text-gradient mb-1">
+                Welcome, {user?.fullname}
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Ready to interact with your students?
+              </p>
+            </div>
+            {/* === Added: Teacher's TODO button (like students) === */}
+            <div>
+              <TodoButton />
+            </div>
+          </div>
         </CardContent>
       </Card>
       {/* Two-Column Layout */}
@@ -88,7 +97,7 @@ const handleCreateSession = async (e: React.FormEvent) => {
               <span className="text-gradient">Start a Session</span>
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Create a new live Q&A session for your class.
+              Create a new live Q&amp;A session for your class.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
