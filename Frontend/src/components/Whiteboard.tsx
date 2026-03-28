@@ -10,7 +10,11 @@ type Tool =
   | "triangle"
   | "arrow";
 
-const Whiteboard: React.FC = () => {
+type WhiteboardProps = {
+  onClose: () => void;
+};
+
+const Whiteboard: React.FC<WhiteboardProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [tool, setTool] = useState<Tool>("pen");
@@ -27,23 +31,18 @@ const Whiteboard: React.FC = () => {
 
   const getCtx = () => canvasRef.current?.getContext("2d");
 
-  // 🔥 SAVE STATE
+  //  SAVE STATE
   const saveState = () => {
     const ctx = getCtx();
     if (!ctx) return;
 
-    const data = ctx.getImageData(
-      0,
-      0,
-      ctx.canvas.width,
-      ctx.canvas.height
-    );
+    const data = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     setHistory((prev) => [...prev, data]);
     setRedoStack([]);
   };
 
-  // 🔷 DRAW SHAPE
+  //  DRAW SHAPE
   const drawShape = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = brushSize;
@@ -86,18 +85,18 @@ const Whiteboard: React.FC = () => {
       ctx.lineTo(x, y);
       ctx.lineTo(
         x - headlen * Math.cos(angle - Math.PI / 6),
-        y - headlen * Math.sin(angle - Math.PI / 6)
+        y - headlen * Math.sin(angle - Math.PI / 6),
       );
       ctx.moveTo(x, y);
       ctx.lineTo(
         x - headlen * Math.cos(angle + Math.PI / 6),
-        y - headlen * Math.sin(angle + Math.PI / 6)
+        y - headlen * Math.sin(angle + Math.PI / 6),
       );
       ctx.stroke();
     }
   };
 
-  // 🟢 START
+  //  START
   const start = (e: React.MouseEvent) => {
     const ctx = getCtx();
     if (!ctx) return;
@@ -114,7 +113,7 @@ const Whiteboard: React.FC = () => {
         0,
         0,
         ctx.canvas.width,
-        ctx.canvas.height
+        ctx.canvas.height,
       );
     }
 
@@ -126,7 +125,7 @@ const Whiteboard: React.FC = () => {
     setDrawing(true);
   };
 
-  // 🟡 DRAW
+  //  DRAW
   const draw = (e: React.MouseEvent) => {
     if (!drawing) return;
     const ctx = getCtx();
@@ -159,7 +158,7 @@ const Whiteboard: React.FC = () => {
     }
   };
 
-  // 🔴 STOP
+  //  STOP
   const stop = (e: React.MouseEvent) => {
     if (!drawing) return;
     const ctx = getCtx();
@@ -176,59 +175,49 @@ const Whiteboard: React.FC = () => {
     snapshotRef.current = null;
   };
 
-  // 🔁 UNDO
-const undo = () => {
-  const ctx = getCtx();
-  if (!ctx) return;
+  //  UNDO
+  const undo = () => {
+    const ctx = getCtx();
+    if (!ctx) return;
 
-  if (history.length === 0) return;
+    if (history.length === 0) return;
 
-  const newHistory = [...history];
-  const last = newHistory.pop();
+    const newHistory = [...history];
+    const last = newHistory.pop();
 
-  if (!last) return;
+    if (!last) return;
 
-  // Save current state to redo
-  const current = ctx.getImageData(
-    0,
-    0,
-    ctx.canvas.width,
-    ctx.canvas.height
-  );
+    // Save current state to redo
+    const current = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-  setRedoStack((prev) => [...prev, current]);
-  setHistory(newHistory);
+    setRedoStack((prev) => [...prev, current]);
+    setHistory(newHistory);
 
-  ctx.putImageData(last, 0, 0);
-};
+    ctx.putImageData(last, 0, 0);
+  };
 
-  // 🔁 REDO 
-const redo = () => {
-  const ctx = getCtx();
-  if (!ctx) return;
+  //  REDO
+  const redo = () => {
+    const ctx = getCtx();
+    if (!ctx) return;
 
-  if (redoStack.length === 0) return;
+    if (redoStack.length === 0) return;
 
-  const newRedo = [...redoStack];
-  const last = newRedo.pop();
+    const newRedo = [...redoStack];
+    const last = newRedo.pop();
 
-  if (!last) return;
+    if (!last) return;
 
-  // Save current state to history
-  const current = ctx.getImageData(
-    0,
-    0,
-    ctx.canvas.width,
-    ctx.canvas.height
-  );
+    // Save current state to history
+    const current = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-  setHistory((prev) => [...prev, current]);
-  setRedoStack(newRedo);
+    setHistory((prev) => [...prev, current]);
+    setRedoStack(newRedo);
 
-  ctx.putImageData(last, 0, 0);
-};
+    ctx.putImageData(last, 0, 0);
+  };
 
-  // 🧹 CLEAR
+  //  CLEAR
   const clearCanvas = () => {
     const ctx = getCtx();
     if (!ctx) return;
@@ -240,17 +229,21 @@ const redo = () => {
 
   return (
     <div className="w-full h-full flex flex-col bg-[#1e1e1e] overflow-hidden rounded-lg">
-      
       {/*  TOOLBAR */}
       <div className="flex items-center gap-3 px-4 py-2 bg-[#2b2b2b] text-white">
-
         <span className="font-semibold mr-4">Whiteboard Toolbar</span>
 
-        <button onClick={() => setTool("pen")} className="p-2 bg-gray-700 rounded">
+        <button
+          onClick={() => setTool("pen")}
+          className="p-2 bg-gray-700 rounded"
+        >
           <Pencil size={18} />
         </button>
 
-        <button onClick={() => setTool("eraser")} className="p-2 bg-gray-700 rounded">
+        <button
+          onClick={() => setTool("eraser")}
+          className="p-2 bg-gray-700 rounded"
+        >
           <Eraser size={18} />
         </button>
 
@@ -265,11 +258,46 @@ const redo = () => {
 
           {showShapes && (
             <div className="absolute top-12 left-0 flex flex-col gap-2 bg-[#2b2b2b] border border-gray-600 rounded p-2">
-              <button onClick={() => { setTool("rect"); setShowShapes(false); }}>▭</button>
-              <button onClick={() => { setTool("circle"); setShowShapes(false); }}>◯</button>
-              <button onClick={() => { setTool("line"); setShowShapes(false); }}>／</button>
-              <button onClick={() => { setTool("triangle"); setShowShapes(false); }}>△</button>
-              <button onClick={() => { setTool("arrow"); setShowShapes(false); }}>➝</button>
+              <button
+                onClick={() => {
+                  setTool("rect");
+                  setShowShapes(false);
+                }}
+              >
+                ▭
+              </button>
+              <button
+                onClick={() => {
+                  setTool("circle");
+                  setShowShapes(false);
+                }}
+              >
+                ◯
+              </button>
+              <button
+                onClick={() => {
+                  setTool("line");
+                  setShowShapes(false);
+                }}
+              >
+                ／
+              </button>
+              <button
+                onClick={() => {
+                  setTool("triangle");
+                  setShowShapes(false);
+                }}
+              >
+                △
+              </button>
+              <button
+                onClick={() => {
+                  setTool("arrow");
+                  setShowShapes(false);
+                }}
+              >
+                ➝
+              </button>
             </div>
           )}
         </div>
@@ -299,9 +327,13 @@ const redo = () => {
         <button onClick={clearCanvas} className="bg-red-500 px-3 py-1 rounded">
           Clear
         </button>
+
+        <button onClick={onClose} className="bg-red-600 px-3 py-1 rounded">
+          Close
+        </button>
       </div>
 
-      {/* 🎨 FULL CANVAS */}
+      {/*  FULL CANVAS */}
       <div className="flex-1">
         <canvas
           ref={canvasRef}

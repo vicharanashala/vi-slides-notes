@@ -114,7 +114,7 @@ const SessionPage = () => {
       socket.emit("webrtc_offer", { to: studentId, offer });
     };
 
-    const handleOffer = async ({ offer, from }: unknown) => {
+    const handleOffer = async ({ offer, from }: any ) => {
       if (isTeacher) return;
       const pc = new RTCPeerConnection(rtcConfig);
       pcRef.current = pc;
