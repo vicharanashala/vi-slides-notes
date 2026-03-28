@@ -3,7 +3,7 @@ import { getTodos, createTodo, updateTodo, deleteTodo, type Todo } from "@/lib/a
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, ArrowLeft, Calendar } from "lucide-react";
+import { Trash2, Plus, ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function TodoPage() {
@@ -12,6 +12,9 @@ export default function TodoPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const navigate = useNavigate();
 
   // Fetch todos on mount
@@ -38,12 +41,10 @@ export default function TodoPage() {
       alert("Please enter a title");
       return;
     }
-
     if (!dueDate) {
       alert("Please select a due date");
       return;
     }
-
     try {
       const res = await createTodo({
         title: title.trim(),
@@ -84,6 +85,20 @@ export default function TodoPage() {
     }
   };
 
+  // Update todo (Edit)
+  const handleUpdateTodo = async (id: string) => {
+    try {
+      const res = await updateTodo(id, {
+        title: editTitle,
+        description: editDescription,
+      });
+      setTodos(todos.map(t => (t._id === id ? res.data : t)));
+      setEditingTodoId(null);
+    } catch (err) {
+      alert("Failed to update todo");
+    }
+  };
+
   // Format date for display
   const formatDate = (dateString: string) => {
     try {
@@ -116,10 +131,76 @@ export default function TodoPage() {
   const overdueTodos = pendingTodos.filter((t) => isOverdue(t.dueDate));
   const upcomingTodos = pendingTodos.filter((t) => !isOverdue(t.dueDate));
 
+  // Card actions block
+  const TodoCardActions = (todo: Todo) => (
+    <div className="flex gap-1 mt-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Edit"
+        onClick={() => {
+          setEditingTodoId(todo._id);
+          setEditTitle(todo.title);
+          setEditDescription(todo.description);
+        }}
+      >
+        <Pencil className="w-4 h-4 text-blue-500" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Delete"
+        onClick={() => handleDeleteTodo(todo._id)}
+      >
+        <Trash2 className="w-4 h-4 text-destructive" />
+      </Button>
+    </div>
+  );
+
+  // Card main body (handles edit state)
+  const TodoCardContent = (todo: Todo) => (
+    <div className="flex-1">
+      {editingTodoId === todo._id ? (
+        <div className="flex flex-col gap-2">
+          <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="mb-1" />
+          <textarea
+            value={editDescription}
+            onChange={e => setEditDescription(e.target.value)}
+            className="w-full p-2 border border-input rounded-md bg-background text-foreground"
+            rows={2}
+          />
+          <div className="flex gap-2 mt-1">
+            <Button
+              size="sm"
+              onClick={async () => {
+                await handleUpdateTodo(todo._id);
+              }}>
+              Save
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditingTodoId(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <h3 className="font-semibold">{todo.title}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{todo.description}</p>
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <Calendar className="w-4 h-4" />
+            <span>Due: {formatDate(todo.dueDate)}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-dvh px-4 py-12">
       <div className="mx-auto w-full max-w-2xl flex flex-col gap-8">
-        
         {/* Back Button */}
         <Button
           onClick={() => navigate(-1)}
@@ -182,7 +263,6 @@ export default function TodoPage() {
 
         {!loading && todos.length > 0 && (
           <div className="flex flex-col gap-6">
-            
             {/* Overdue Todos */}
             {overdueTodos.length > 0 && (
               <div>
@@ -199,25 +279,8 @@ export default function TodoPage() {
                           onChange={() => handleToggleTodo(todo)}
                           className="mt-1 cursor-pointer w-5 h-5"
                         />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-destructive">
-                            {todo.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {todo.description}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-destructive">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {formatDate(todo.dueDate)}</span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTodo(todo._id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        {TodoCardContent(todo)}
+                        {TodoCardActions(todo)}
                       </CardContent>
                     </Card>
                   ))}
@@ -241,25 +304,8 @@ export default function TodoPage() {
                           onChange={() => handleToggleTodo(todo)}
                           className="mt-1 cursor-pointer w-5 h-5"
                         />
-                        <div className="flex-1">
-                          <h3 className="font-semibold">
-                            {todo.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {todo.description}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {formatDate(todo.dueDate)}</span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTodo(todo._id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-muted-foreground" />
-                        </Button>
+                        {TodoCardContent(todo)}
+                        {TodoCardActions(todo)}
                       </CardContent>
                     </Card>
                   ))}
@@ -286,25 +332,8 @@ export default function TodoPage() {
                           onChange={() => handleToggleTodo(todo)}
                           className="mt-1 cursor-pointer w-5 h-5"
                         />
-                        <div className="flex-1">
-                          <h3 className="font-semibold line-through text-muted-foreground">
-                            {todo.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {todo.description}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Due: {formatDate(todo.dueDate)}</span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTodo(todo._id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-muted-foreground" />
-                        </Button>
+                        {TodoCardContent(todo)}
+                        {TodoCardActions(todo)}
                       </CardContent>
                     </Card>
                   ))}
