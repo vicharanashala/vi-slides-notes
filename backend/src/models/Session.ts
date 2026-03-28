@@ -3,11 +3,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface ISession extends Document {
     title: string;
     description?: string;
-    code: string; // Unique 6-character code
+    code: string; // Unique 8-character code
     qrCodeDataUrl?: string; // Base64 QR code image
     joinUrl?: string; // The URL encoded in the QR code
     teacher: mongoose.Types.ObjectId;
     students: mongoose.Types.ObjectId[];
+    expiresAt?: Date;
+    maxStudents?: number;
     attendance: {
         student: mongoose.Types.ObjectId;
         name: string;
@@ -57,6 +59,10 @@ const sessionSchema = new Schema<ISession>({
         type: Schema.Types.ObjectId,
         ref: 'User'
     }],
+    maxStudents: {
+    type: Number,
+    default: 100
+    },
     attendance: [{
         student: { type: Schema.Types.ObjectId, ref: 'User' },
         name: String,
@@ -86,9 +92,13 @@ const sessionSchema = new Schema<ISession>({
     createdAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    expiresAt: {
+    type: Date,
+    default: () => new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours
+}
 });
-
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const Session = mongoose.model<ISession>('Session', sessionSchema);
 
 export default Session;
