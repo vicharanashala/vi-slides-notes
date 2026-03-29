@@ -16,6 +16,7 @@ import cookieParser from "cookie-parser";
 import assignmentRouter from "./routes/assignment.route";
 import classRouter from "./routes/class.route";
 import authRouter from "./routes/auth.route";
+import aiRouter from "./routes/ai.route";
 import todoRoutes from './routes/todo.route';
 
 import connectDB from "./config/db";
@@ -64,6 +65,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/assignments", assignmentRouter);
 app.use("/api/class", classRouter);
+app.use("/api/ai", aiRouter);
 app.use("/api/todos", todoRoutes); 
 
 // ------------------- HEALTH CHECK -------------------
