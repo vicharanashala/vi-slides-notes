@@ -95,7 +95,7 @@ const Login: React.FC = () => {
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className="form-group" style={{ marginBottom: '0.5rem' }}>
                             <label htmlFor="password" className="form-label">Password</label>
                             <div style={{ position: 'relative' }}>
                                 <input
@@ -131,6 +131,12 @@ const Login: React.FC = () => {
                                     {showPassword ? '👁️' : '🙈'}
                                 </button>
                             </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
+                            <Link to="/forgot-password" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontSize: '0.9rem' }}>
+                                Forgot Password?
+                            </Link>
                         </div>
 
                         <button
