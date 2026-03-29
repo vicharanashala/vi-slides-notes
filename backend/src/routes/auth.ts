@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { register, login, getMe, updateDetails, googleLogin, getLeaderboard } from '../controllers/authController';
+import { register, login, getMe, updateDetails, googleLogin, getLeaderboard, forgotPassword, resetPassword } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 
 const router = express.Router();
@@ -44,6 +44,30 @@ router.post(
 // @desc    Login/Register with Google
 // @access  Public
 router.post('/google', googleLogin);
+
+// @route   POST /api/auth/forgotpassword
+// @desc    Forgot Password Request
+// @access  Public
+router.post(
+    '/forgotpassword',
+    [
+        body('email').isEmail().withMessage('Please provide a valid email')
+    ],
+    forgotPassword
+);
+
+// @route   PUT /api/auth/resetpassword/:resettoken
+// @desc    Reset Password
+// @access  Public
+router.put(
+    '/resetpassword/:resettoken',
+    [
+        body('password')
+            .isLength({ min: 6 })
+            .withMessage('Password must be at least 6 characters')
+    ],
+    resetPassword
+);
 
 // @route   GET /api/auth/me
 // @desc    Get current logged in user

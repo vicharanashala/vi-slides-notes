@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
+import crypto from 'crypto';
 import User, { IUser } from '../models/User';
+import { sendPasswordResetEmail } from '../services/emailService';
 
 // Augment express-serve-static-core
 declare module 'express-serve-static-core' {
@@ -109,14 +111,37 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        // Check if account is locked
+        if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
+            const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
+            res.status(403).json({
+                success: false,
+                message: `Account temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minutes.`
+            });
+            return;
+        }
+
         // Check if password matches
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+            user.loginAttempts = (user.loginAttempts || 0) + 1;
+            if (user.loginAttempts >= 5) {
+                user.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
+            }
+            await user.save();
+
             res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
             });
             return;
+        }
+
+        // Reset login attempts on success
+        if (user.loginAttempts > 0) {
+            user.loginAttempts = 0;
+            user.lockUntil = undefined;
+            await user.save();
         }
 
         // Generate token
@@ -306,6 +331,111 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         res.status(500).json({
             success: false,
             message: 'Server error during Google login'
+        });
+    }
+};
+
+// @desc    Forgot Password
+// @route   POST /api/auth/forgotpassword
+// @access  Public
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const user = await User.findOne({ email: req.body.email });
+
+        if (!user) {
+            // We return true even if user not found to prevent email enumeration
+            res.status(200).json({ success: true, message: 'Email sent' });
+            return;
+        }
+
+        // Get reset token
+        const resetToken = user.getResetPasswordToken();
+
+        await user.save({ validateBeforeSave: false });
+
+        // Create reset url
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+        try {
+            const emailResult = await sendPasswordResetEmail(user.email, resetUrl);
+
+            if (!emailResult.success) {
+                user.resetPasswordToken = undefined;
+                user.resetPasswordExpire = undefined;
+                await user.save({ validateBeforeSave: false });
+
+                res.status(500).json({
+                    success: false,
+                    message: 'Email could not be sent. Please check backend SMTP configuration.'
+                });
+                return;
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Email sent'
+            });
+        } catch (error) {
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save({ validateBeforeSave: false });
+
+            res.status(500).json({
+                success: false,
+                message: 'Email could not be sent'
+            });
+        }
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during password reset'
+        });
+    }
+};
+
+// @desc    Reset Password
+// @route   PUT /api/auth/resetpassword/:resettoken
+// @access  Public
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+    try {
+        // Get hashed token
+        const resetPasswordToken = crypto
+            .createHash('sha256')
+            .update(req.params.resettoken)
+            .digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or expired token'
+            });
+            return;
+        }
+
+        // Set new password
+        user.password = req.body.password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+
+        // Force save to trigger bcrypt middleware
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Password updated successfully'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during password reset'
         });
     }
 };
