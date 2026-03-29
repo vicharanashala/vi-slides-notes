@@ -6,7 +6,10 @@ export const getSocket = (): Socket => {
   if (!socket) {
     socket = io(import.meta.env.VITE_SOCKET_URL, {
       withCredentials: true,
-     
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
     socket.on("connect", () => {
@@ -24,4 +27,11 @@ export const getSocket = (): Socket => {
   }
 
   return socket;
+};
+
+export const reconnectSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket.connect();
+  }
 };

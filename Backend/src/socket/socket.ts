@@ -8,6 +8,11 @@ let io: Server;
 // Store questions per class
 const classQuestions = new Map<string, any[]>();
 
+// Store active polls per class
+const classPolls = new Map<string, any>();
+
+const pastPolls = new Map<string, any[]>();
+
 export const initSocket = (server: http.Server) => {
   io = new Server(server, {
     cors: {
@@ -79,12 +84,9 @@ export const initSocket = (server: http.Server) => {
     // ---------------- 📺 SCREEN SHARE & RENEGOTIATION ----------------
 
     socket.on("class_started", ({ classId }) => {
-      // 1. Notify students that the UI should show the video container
       socket.to(classId).emit("class_started");
 
-      // 2. CRITICAL: Ask all students in the room to "re-join" the WebRTC flow
-      // This forces the 'student_joined' logic on the teacher's frontend for everyone currently present.
-      socket.to(classId).emit("request_renegotiation", { teacherId: socket.id });
+      
     });
 
     // Students respond to 'request_renegotiation' by emitting this
@@ -121,6 +123,11 @@ export const initSocket = (server: http.Server) => {
           from: socket.id,
         });
       }
+    });
+    
+    // ---------------- 🎙️ MIC TOGGLE ----------------
+    socket.on("mic_toggle", ({ classId, isMicOn }) => {
+      socket.to(classId).emit("mic_toggle", { isMicOn });
     });
 
     // ---------------- QUESTIONS & CLASS MGMT ----------------
@@ -159,6 +166,152 @@ export const initSocket = (server: http.Server) => {
         questionId,
         answer,
       });
+    });
+
+    // ============= POLL EVENTS ============= fronm here
+// ============= POLL EVENTS =============
+
+/**
+ * Teacher creates and launches a poll
+ * - Broadcasts poll to all students in the class
+ * - Sets auto-close timer (30 seconds by default)
+ */
+socket.on("create_poll", ({ classId, question, options, duration = 30 }) => {
+  const user = socket.data.user;
+
+  if (user.role !== "Instructor") {
+    return socket.emit("error", "Only instructors can create polls");
+  }
+
+  const newPoll = {
+    id: Date.now(),
+    question,
+    options,
+    responses: {},
+    createdBy: user._id,
+    isActive: true,
+    createdAt: Date.now(),
+    duration, // Duration in seconds
+  };
+
+  classPolls.set(classId, newPoll);
+  io.to(classId).emit("poll_launched", newPoll);
+
+  // AUTO-CLOSE POLL after duration
+  setTimeout(() => {
+    const poll = classPolls.get(classId);
+    if (poll && poll.id === newPoll.id) {
+      io.to(classId).emit("auto_close_poll", { classId, pollId: newPoll.id });
+      handleClosePoll(classId, newPoll.id); // ✅ IMPORTANT
+    }
+  }, duration * 1000);
+});
+
+/**
+ * Student submits a poll response
+ * - Validates the student hasn't already voted
+ * - Pushes response to array
+ * - Broadcasts update to teacher for live stats
+ */
+socket.on("submit_poll_response", ({ classId, pollId, selectedOption }) => {
+  const user = socket.data.user;
+  const poll = classPolls.get(classId);
+
+  if (!poll || poll.id !== pollId) {
+    return socket.emit("error", "Poll not found or expired");
+  }
+
+  // CHECK IF USER ALREADY VOTED
+  const alreadyVoted = poll.responses[selectedOption]?.some(
+    (r: any) => r.userId.toString() === user._id.toString()
+  );
+
+  if (alreadyVoted) {
+    return socket.emit("error", "Already voted");
+  }
+
+  // SAFE TO PUSH - Store both userId and selected option
+  if (!poll.responses[selectedOption]) {
+    poll.responses[selectedOption] = [];
+  }
+
+  poll.responses[selectedOption].push({
+    userId: user._id,
+    timestamp: Date.now(),
+  });
+
+  // BROADCAST REAL-TIME UPDATE TO ALL (including teacher)
+  io.to(classId).emit("poll_response_updated", {
+    pollId,
+    selectedOption,
+    totalResponses: Object.values(poll.responses).flat().length,
+    currentStats: generateStats(poll),
+  });
+});
+
+/**
+ * Teacher closes poll (manual or auto)
+ * - Calculates final statistics
+ * - Persists poll to database
+ * - Broadcasts results to all users
+ */
+socket.on("close_poll", ({ classId, pollId }) => {
+  const user = socket.data.user;
+  
+  if (user.role !== "Instructor") {
+    return socket.emit("error", "Only instructors can close polls");
+  }
+
+  handleClosePoll(classId, pollId);
+});
+
+/**
+ * Helper function to close poll and calculate stats
+ */
+const handleClosePoll = (classId: string, pollId: number) => {
+  const poll = classPolls.get(classId);
+
+  if (!poll || poll.id !== pollId) {
+    return;
+  }
+
+  poll.isActive = false;
+
+  const stats = generateStats(poll);
+
+  io.to(classId).emit("poll_closed", {
+    pollId,
+    statistics: stats,
+    question: poll.question,
+  });
+
+  if (!pastPolls.has(classId)) {
+    pastPolls.set(classId, []);
+  }
+
+  pastPolls.get(classId)?.push({
+    question: poll.question,
+    options: poll.options,
+    responses: poll.responses,
+    createdAt: poll.createdAt,
+  });
+
+  classPolls.delete(classId);
+};
+const generateStats = (poll: any) => {
+  const total = Object.values(poll.responses).flat().length || 1;
+
+  return poll.options.map((option: string, index: number) => ({
+    option,
+    count: poll.responses[index]?.length || 0,
+    percentage: (
+      ((poll.responses[index]?.length || 0) / total) * 100
+    ).toFixed(1),
+  }));
+};
+    socket.on("get_past_polls", ({ classId }) => {
+      const polls = pastPolls.get(classId) || [];
+      socket.emit("past_polls", polls);
     });
 
     socket.on("end_class", async ({ classId }) => {

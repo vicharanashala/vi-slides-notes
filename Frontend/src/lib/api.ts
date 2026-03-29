@@ -170,6 +170,11 @@ export interface UpdateTodoRequest {
   completed?: boolean;
 }
 
+// -------- AI TYPES --------
+export interface AIAnswerResponse {
+  answer: string;
+}
+
 // -------- AXIOS INSTANCE --------
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
@@ -257,3 +262,7 @@ export const updateTodo = (id: string, data: UpdateTodoRequest) =>
 export const deleteTodo = (id: string) =>
   api.delete<{ message: string }>(`/todos/${id}`);
 
+// ---------------Ask AI----------------
+export const getAIAnswer = (question: string) => {
+  return api.post<AIAnswerResponse>("/ai/answer", { question });
+};
