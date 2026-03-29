@@ -14,12 +14,17 @@ import { Label } from "@/components/ui/label";
 type PollModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreatePoll: (question: string, options: string[]) => void;
+  onCreatePoll: (
+    question: string,
+    options: string[],
+    duration: number
+  ) => void;
 };
 
 export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", ""]);
+  const [duration, setDuration] = useState(30);
 
   const handleAddOption = () => {
     setOptions([...options, ""]);
@@ -47,9 +52,12 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
       return;
     }
 
-    onCreatePoll(question, filledOptions);
+    onCreatePoll(question, filledOptions, duration);
+
+    // Reset
     setQuestion("");
     setOptions(["", "", ""]);
+    setDuration(30);
     onClose();
   };
 
@@ -64,6 +72,7 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Question */}
           <div>
             <Label htmlFor="question">Poll Question</Label>
             <Input
@@ -75,6 +84,7 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
             />
           </div>
 
+          {/* Options */}
           <div>
             <Label>Poll Options</Label>
             <div className="space-y-2 mt-2">
@@ -99,6 +109,7 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
                 </div>
               ))}
             </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -107,6 +118,23 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
             >
               + Add Option
             </Button>
+          </div>
+
+          {/* ✅ NEW: Duration */}
+          <div>
+            <Label>Poll Duration (seconds)</Label>
+            <div className="flex gap-2 mt-2">
+              {[10, 15, 20, 30, 45, 60].map((sec) => (
+                <Button
+                  key={sec}
+                  variant={duration === sec ? "default" : "outline"}
+                  onClick={() => setDuration(sec)}
+                  className="flex-1"
+                >
+                  {sec}s
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 

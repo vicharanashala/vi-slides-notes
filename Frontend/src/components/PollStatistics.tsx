@@ -4,7 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import { Button } from "@/components/ui/button"; // ✅ NEW
 type Stat = {
   option: string;
   count: number;
@@ -30,9 +30,12 @@ export function PollStatistics({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{question}</DialogTitle>
+          {/* ✅ Slight UI improvement */}
+          <DialogTitle>📊 Poll Results: {question}</DialogTitle>
         </DialogHeader>
-
+        <p className="text-sm text-muted-foreground">
+          Total Responses: {statistics.reduce((sum, s) => sum + s.count, 0)}
+        </p>
         <div className="space-y-6">
           {statistics.map((stat, index) => (
             <div key={index}>
@@ -53,6 +56,11 @@ export function PollStatistics({
             </div>
           ))}
         </div>
+
+        {/* ✅ NEW: Close button */}
+        <Button onClick={onClose} className="w-full mt-4">
+          Close
+        </Button>
       </DialogContent>
     </Dialog>
   );

@@ -1,16 +1,20 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+/**
+ * Interface for Poll documents
+ * Stores poll questions, options, and student responses
+ */
 export interface IPoll extends Document {
-  classId: mongoose.Types.ObjectId;
-  question: string;
-  options: string[];
-  responses: {
+  classId: mongoose.Types.ObjectId;    // Reference to the class
+  question: string;                     // The poll question
+  options: string[];                    // Array of answer options
+  responses: {                          // Tracks who voted for what
     userId: mongoose.Types.ObjectId;
-    selectedOption: number; // index of option
+    selectedOption: number;             // Index of the selected option
   }[];
-  isActive: boolean;
-  createdBy: mongoose.Types.ObjectId; // instructor ID
-  createdAt: Date;
+  isActive: boolean;                    // Poll open/closed state
+  createdBy: mongoose.Types.ObjectId;  // Instructor who created it
+  createdAt: Date;                      // Timestamp
 }
 
 const pollSchema: Schema<IPoll> = new Schema(

@@ -26,36 +26,47 @@ export function StudentPollPopup({
 }: StudentPollPopupProps) {
   const [selected, setSelected] = useState<number | null>(null);
 
+  // ✅ Keep safety check (VERY IMPORTANT)
   if (!poll || !poll.isActive) return null;
+
+  const handleSubmit = () => {
+    if (selected === null) {
+      alert("Please select an option");
+      return;
+    }
+
+    onSubmit(selected);
+    setSelected(null);
+  };
 
   return (
     <Dialog open={!!poll && poll.isActive} onOpenChange={() => {}}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{poll.question}</DialogTitle>
+          <DialogTitle className="text-lg">{poll.question}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2">
+        {/* ✅ Improved options UI */}
+        <div className="space-y-3">
           {poll.options.map((option, index) => (
             <Button
               key={index}
               variant={selected === index ? "default" : "outline"}
-              className="w-full justify-start text-left h-auto py-3"
               onClick={() => setSelected(index)}
+              className="w-full justify-start text-left h-auto py-3"
             >
+              <span className="mr-2">
+                {selected === index ? "✓" : "○"}
+              </span>
               {option}
             </Button>
           ))}
         </div>
 
+        {/* ✅ Keep footer (important for consistency) */}
         <DialogFooter>
           <Button
-            onClick={() => {
-              if (selected !== null) {
-                onSubmit(selected);
-                setSelected(null);
-              }
-            }}
+            onClick={handleSubmit}
             disabled={selected === null}
             className="w-full"
           >

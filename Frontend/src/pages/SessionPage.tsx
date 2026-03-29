@@ -15,6 +15,8 @@ import Whiteboard from "@/components/Whiteboard";
 import { StudentPollPopup } from "@/components/StudentPollPopup";
 import { PollStatistics } from "@/components/PollStatistics";
 
+import { PastPollsModal } from "@/components/PastPollsModal";
+
 const SessionPage = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
@@ -29,6 +31,8 @@ const SessionPage = () => {
   const [pollStats, setPollStats] = useState<any>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [showPollStats, setShowPollStats] = useState(false);
+  const [pastPolls, setPastPolls] = useState<any[]>([]);
+  const [showPastPolls, setShowPastPolls] = useState(false);
   const [activeId, setActiveId] = useState<string>();
 
   const { user } = useAuth();
@@ -180,6 +184,10 @@ const SessionPage = () => {
   setHasVoted(true);
 
   setCurrentPoll(null);
+};
+const handleViewPastPolls = () => {
+  getSocket().emit("get_past_polls", { classId });
+  setShowPastPolls(true);
 };
   // ================== SOCKET + WEBRTC ==================
   useEffect(() => {
@@ -399,6 +407,16 @@ const SessionPage = () => {
       setPollStats(null);
       setShowPollStats(false);
     });
+    socket.on("poll_response_updated", ({ selectedOption,totalResponses, currentStats }) => {
+      if (isTeacher) {
+        console.log(`🗳️ Response received for option ${selectedOption}`);
+        setPollStats({
+          question: pollStats?.question || currentPoll?.question,
+          statistics: currentStats,
+          totalResponses,
+        });
+      }
+    });
 
     socket.on("poll_closed", ({ statistics, question }) => {
       console.log("📊 Poll closed:", statistics);
@@ -406,10 +424,18 @@ const SessionPage = () => {
       setPollStats({
         question,
         statistics,
+        totalResponses: statistics.reduce(
+          (sum: number, s: any) => sum + s.count,
+          0
+        ),
       });
 
       setShowPollStats(true);
       setCurrentPoll(null);
+    });
+    socket.on("past_polls", (polls) => {
+      console.log("📜 Past polls:", polls);
+      setPastPolls(polls);
     });
     socket.on("student_joined", handleStudentJoined);
     socket.on("webrtc_offer", handleOffer);
@@ -448,9 +474,11 @@ const SessionPage = () => {
       socket.off("request_renegotiation");
       socket.off("poll_launched");
       socket.off("poll_closed");
+      socket.off("poll_response_updated");
+      socket.off("past_polls");
 
     };
-  }, [classId, isTeacher, navigate]);
+  }, [classId, isTeacher, navigate, currentPoll]);
 
   if (loading)
     return (
@@ -501,6 +529,9 @@ const SessionPage = () => {
             onToggleMic={handleToggleMic}
             isMicOn={isMicOn}
             onEndSession={handleEndSession}
+            currentPollId={currentPoll?.id}
+            onClosePoll={() => setCurrentPoll(null)}
+            onViewPastPolls={handleViewPastPolls}
           />
 
           {showWhiteboard && (
@@ -578,6 +609,11 @@ const SessionPage = () => {
           />
         </div>
       )}
+      <PastPollsModal
+        open={showPastPolls}
+        onClose={() => setShowPastPolls(false)}
+        polls={pastPolls}
+      />
     </SidebarProvider>
   );
 };
