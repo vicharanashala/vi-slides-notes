@@ -151,3 +151,100 @@ export const sendGradeNotification = async (
         return { success: false, message: 'Failed to send email', error };
     }
 };
+
+/**
+ * Send password reset email
+ */
+export const sendPasswordResetEmail = async (email: string, resetUrl: string) => {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.warn('Email service not configured. Skipping password reset email.');
+        return { success: false, message: 'Email service not configured' };
+    }
+
+    const transporter = createTransporter();
+
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: 'Inter', Arial, sans-serif;
+                    background-color: #f5f7fb;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+                .header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 30px;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 24px;
+                }
+                .content {
+                    padding: 30px;
+                    text-align: center;
+                }
+                .button {
+                    display: inline-block;
+                    background: #6366f1;
+                    color: white;
+                    padding: 12px 24px;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    margin-top: 20px;
+                    font-weight: bold;
+                }
+                .footer {
+                    background: #f8fafc;
+                    padding: 20px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #64748b;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔒 Password Reset Request</h1>
+                </div>
+                <div class="content">
+                    <p>You requested a password reset. Please click the button below to set a new password.</p>
+                    <p>This link is only valid for 10 minutes.</p>
+                    <a href="${resetUrl}" class="button">Reset Password</a>
+                    <p style="margin-top: 20px; font-size: 12px; color: #64748b;">If you did not request this, please ignore this email.</p>
+                </div>
+                <div class="footer">
+                    <p>© ${new Date().getFullYear()} Vi-SlideS. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    try {
+        await transporter.sendMail({
+            from: `"Vi-SlideS Server" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: 'Password Reset Request',
+            html: htmlContent
+        });
+
+        return { success: true, message: 'Email sent successfully' };
+    } catch (error) {
+        console.error('Password reset email sending failed:', error);
+        return { success: false, message: 'Failed to send email', error };
+    }
+};
