@@ -5,6 +5,7 @@ import {
   Presentation,
   FileDown,
   Vote,
+  History,
 } from "lucide-react";
 import { Mic, MicOff } from "lucide-react";
 
@@ -50,6 +51,13 @@ export const PollButton = ({ onClick }: ButtonProps) => (
   <Button onClick={onClick} className={btnStyle}>
     <Vote size={16} />
     <GradientText>Poll</GradientText>
+  </Button>
+);
+
+export const PastPollsButton = ({ onClick }: ButtonProps) => (
+  <Button onClick={onClick} className={btnStyle}>
+    <History size={16} />
+    <GradientText>Past Polls</GradientText>
   </Button>
 );
 

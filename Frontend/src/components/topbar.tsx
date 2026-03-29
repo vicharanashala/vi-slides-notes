@@ -13,6 +13,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getSocket } from "@/lib/socket";
+import { PollModal } from "./PollModal"; // Add import
+import { Button } from "@/components/ui/button";
+import { PastPollsButton } from "../components/sessionbuttons";
 
 type TopbarProps = {
   sessionName: string;
@@ -25,15 +28,19 @@ type TopbarProps = {
   onToggleMic: () => void;
   isMicOn: boolean;
   onEndSession: () => void;
+  onViewPastPolls?: () => void;
+  currentPollId?: number;
+  onClosePoll?: (pollId: number) => void;
 };
 
 export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarted, onStreamStopped , onOpenWhiteboard , onToggleMic,
-  isMicOn,onEndSession}: TopbarProps) => {
+  isMicOn,onEndSession,onViewPastPolls,currentPollId,onClosePoll,}: TopbarProps) => {
   const { user } = useAuth();
   const isInstructor = user?.role === "Instructor";
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [pollModalOpen, setPollModalOpen] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
   const handleStartShare = async () => {
@@ -61,7 +68,23 @@ export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarte
     onStreamStopped();
     setIsSharing(false);
   };
-
+  const handleCreatePoll = (question: string, options: string[], duration: number) => {
+    getSocket().emit("create_poll", {
+      classId,
+      question,
+      options,
+      duration,
+    });
+  };
+  const handleClosePoll = () => {
+  if (currentPollId) {
+    getSocket().emit("close_poll", {
+      classId,
+      pollId: currentPollId,
+    });
+    onClosePoll?.(currentPollId);
+  }
+};
   return (
     <div className="w-full flex items-center justify-between px-6 py-3 border-b bg-white/10 backdrop-blur-xl">
       <div className="flex items-center gap-2">
@@ -81,13 +104,24 @@ export const Topbar = ({ sessionName, code, classId, onShareFile, onStreamStarte
           />
           <ChooseFile onClick={() => fileInputRef.current?.click()} />
           {!isSharing ? <ShareScreen onClick={handleStartShare} /> : <StopShare onClick={handleStopShare} />}
-          <PollButton />
+          <PollButton onClick={() => setPollModalOpen(true)} />
+          {currentPollId && (
+            <Button onClick={handleClosePoll} variant="destructive">
+              Close Poll
+            </Button>
+          )}
+          <PastPollsButton onClick={onViewPastPolls} />
           <MicButton onClick={onToggleMic} isMicOn={isMicOn} />
           <WhiteboardButton onClick={onOpenWhiteboard}/>
           <EndSessionButton onClick={onEndSession}  />
         </div>
       )}
       {!isInstructor && <LeaveButton onClick={() => navigate("/dashboard")} />}
+      <PollModal
+      open={pollModalOpen}
+      onClose={() => setPollModalOpen(false)}
+      onCreatePoll={handleCreatePoll}
+      />
     </div>
   );
 };
