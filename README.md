@@ -73,8 +73,11 @@ This repository is organized into two primary sections: the backend (server-side
 - Real-time: WebRTC, MediaStream API (for audio)
 
 ## Contributors
-- joj48 (Jojan Joji)
-- codefixxx (Ayush Mishra)
-- tanu236gakt (Tanu Mourya)
-- aniketsinha05 (Aniket Raj Sinha)
-- Vikas-Sharma04 (Vikas Sharma)
+- Jojan Joji ([joj48](https://github.com/joj48))
+- Ayush Mishra ([codefixxx](https://github.com/codefixxx))
+- Tanu Mourya ([tanu236gakt](https://github.com/tanu236gakt))
+- Aniket Raj Sinha ([aniketsinha05](https://github.com/aniketsinha05))
+- Vikas Sharma ([Vikas-Sharma04](https://github.com/Vikas-Sharma04))
+
+## Mentors
+- Mr. Rohit Sharma ([imrohitvk](https://github.com/imrohitvk))
