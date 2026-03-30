@@ -110,6 +110,7 @@ export default function TeacherAssignmentEdit() {
             onChange={(e) =>
               setForm({ ...form, dueDate: e.target.value })
             }
+            min={new Date().toISOString().slice(0, 16)}
           />
         </div>
 

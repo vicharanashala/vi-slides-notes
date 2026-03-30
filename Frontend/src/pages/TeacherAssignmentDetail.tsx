@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import {
   getSingleAssignment,
@@ -26,6 +27,17 @@ export default function TeacherAssignmentDetail() {
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [submissionsVisible, setSubmissionsVisible] = useState(false);
   const [submissionsError, setSubmissionsError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
   // Fetch assignment
   useEffect(() => {
@@ -44,23 +56,29 @@ export default function TeacherAssignmentDetail() {
   }, [id]);
 
   // Delete handler
-  const handleDelete = async () => {
-    if (!confirm("Delete this assignment?")) return;
-    try {
-      await deleteAssignmentAPI(id!);
-      toast({
-        title: "Assignment Deleted",
-        description: "The assignment has been deleted successfully.",
-      });
-      navigate("/assignments");
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Deletion Failed",
-        description: "Failed to delete assignment",
-        variant: "destructive",
-      });
-    }
+  const handleDelete = () => {
+    setDeleteConfirm({
+      open: true,
+      title: "Delete Assignment",
+      description: "Are you sure you want to delete this assignment? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteAssignmentAPI(id!);
+          toast({
+            title: "Assignment Deleted",
+            description: "The assignment has been deleted successfully.",
+          });
+          navigate("/assignments");
+        } catch (err) {
+          console.error(err);
+          toast({
+            title: "Deletion Failed",
+            description: "Failed to delete assignment",
+            variant: "destructive",
+          });
+        }
+      },
+    });
   };
 
   // Toggle submissions
@@ -122,6 +140,7 @@ export default function TeacherAssignmentDetail() {
   }
 
   return (
+    <>
     <div className="min-h-screen p-6">
       <div className="h-20 mb-6" />
 
@@ -277,5 +296,14 @@ export default function TeacherAssignmentDetail() {
         )}
       </div>
     </div>
+
+    <ConfirmDialog
+      open={deleteConfirm.open}
+      onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+      title={deleteConfirm.title}
+      description={deleteConfirm.description}
+      onConfirm={deleteConfirm.onConfirm}
+    />
+    </>
   );
 }

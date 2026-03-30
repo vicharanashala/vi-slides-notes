@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 type PollModalProps = {
   open: boolean;
@@ -25,6 +26,7 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", ""]);
   const [duration, setDuration] = useState(30);
+  const { toast } = useToast();
 
   const handleAddOption = () => {
     setOptions([...options, ""]);
@@ -42,13 +44,21 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
 
   const handleSubmit = () => {
     if (!question.trim()) {
-      alert("Please enter a question");
+      toast({
+        title: "Validation Error",
+        description: "Please enter a question for the poll.",
+        variant: "destructive",
+      });
       return;
     }
 
     const filledOptions = options.filter((opt) => opt.trim());
     if (filledOptions.length < 2) {
-      alert("Please provide at least 2 options");
+      toast({
+        title: "Validation Error",
+        description: "Please provide at least 2 options for the poll.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -120,7 +130,7 @@ export function PollModal({ open, onClose, onCreatePoll }: PollModalProps) {
             </Button>
           </div>
 
-          {/* ✅ NEW: Duration */}
+          {/* NEW: Duration */}
           <div>
             <Label>Poll Duration (seconds)</Label>
             <div className="flex gap-2 mt-2">
