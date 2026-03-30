@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ListTodo } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -7,22 +13,26 @@ export function AssignmentsCard() {
   const navigate = useNavigate();
 
   return (
-    <Card className="border border-foreground/10 bg-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <ListTodo className="w-4 h-4" />
-          <span className="text-gradient">Assignments</span>
+    <Card className="card-glass h-full flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-3 text-lg font-bold text-gradient">
+          <ListTodo className="w-5 h-5 text-accent" />
+          Assignments
         </CardTitle>
-        <CardDescription className="text-xs text-muted-foreground">
-          Create and grade student assignments.
+
+        <CardDescription className="text-soft">
+          Create and manage student assignments.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="flex flex-col flex-1 justify-between pt-0 pb-4 px-6">
+        <div />
+
         <Button
-          className="w-full h-10 text-sm font-semibold border-0"
+          className="btn-glass w-full h-11 text-base"
           onClick={() => navigate("/assignments")}
         >
-          <span className="text-gradient">Manage Assignments</span>
+          Manage Assignments
         </Button>
       </CardContent>
     </Card>

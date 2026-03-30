@@ -28,7 +28,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Welcome card */}
-        <Card className="shadow-xl">
+        <Card className="card-glass group hover:scale-[1.02] transition-all duration-300">
           <CardContent className="p-10">
             <h2 className="text-4xl md:text-5xl font-bold text-gradient mb-1">
               Welcome, {user?.fullname}

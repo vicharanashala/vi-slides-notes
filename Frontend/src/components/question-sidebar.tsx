@@ -111,9 +111,9 @@ export function AppSidebar({
           group-data-[state=collapsed]:border-none
         "
       >
-        <div className="relative flex items-center justify-center">
+        <div className="flex items-center gap-2">
           <MessageSquare size={16} />
-          <span className="absolute -top-1 -right-1 text-xs bg-primary text-destructive rounded-full px-1 leading-none">
+          <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5 leading-none">
             {questions.length}
           </span>
         </div>
