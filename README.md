@@ -1,95 +1,83 @@
-# Vi-SlideS
+# Feature: Vi-Slides – Interactive Classroom Platform
 
-Vi-SlideS is an AI-powered, question-driven classroom platform that helps teachers adapt live teaching based on student questions, sentiment, and cognitive understanding.
+## Overview
+This branch delivers a full-fledged app for live classes, assignments, todos, and real-time Q&A, collaboratively developed with the MERN stack, Socket.io, and WebRTC.
 
-## 🚀 Phase 1 Features: Authentication & Setup
+## Features
+- **Real-time classroom**/session management (Socket.io)
+- **Assignment** creation and tracking
+- **Todo/task** system for students and teachers
+- **Live Whiteboard:** Collaborate visually in real time during sessions
+- **Screen Sharing:** Instructors share their screen with the class for explanations and presentations
+- **Poll system:** teachers launch polls, students vote instantly, with live stats and past poll review
+- **Notification system:** assignment/todo reminders with real-time NotificationBell and toast alerts
+- **Audio:** mic on/off, mute/unmute, talk via integrated WebRTC and MediaStream API
+- Integrated **Ask AI** (Gemini API)—instant answers to student's queries, escalate unclear questions to teachers
+- **Role-based access** and secure authentication
 
-The project is currently in Phase 1, offering a fully functional MERN stack foundation with:
+## Project Structure
 
-- **Authentication System**: Secure JWT-based login and registration.
-- **Role-Based Access**: Specialized dashboards for Teachers and Students.
-- **Premium UI**: Modern, responsive interface with glassmorphism design.
-- **Backend Architecture**: Scalable Express.js + TypeScript server.
-- **Database**: MongoDB Atlas integration for cloud data storage.
+This repository is organized into two primary sections: the backend (server-side) and the frontend (client-side). Below is an overview of the directory and file structure:
 
-## 🛠️ Tech Stack
-
-- **Frontend**: React, TypeScript, Vite, Vanilla CSS (Premium Design)
-- **Backend**: Node.js, Express, TypeScript, JWT
-- **Database**: MongoDB Atlas
-
-## 🚦 Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- VS Code
-- MongoDB Atlas Account
-
-### 1. Clone & Setup
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd vi-slides
+```
+.
+├── Backend
+│   ├── .gitignore             # Git ignore rules for backend
+│   ├── Readme.md              # Backend documentation
+│   ├── package.json           # Backend dependencies and scripts
+│   ├── package-lock.json      # Backend dependency lock file
+│   ├── tsconfig.json          # TypeScript config for backend
+│   └── src
+│       ├── index.ts               # Backend entry point
+│       ├── config/                # Environment and settings configuration
+│       ├── controllers/           # Controller logic for backend routes
+│       ├── middleware/            # Middleware functions
+│       ├── models/                # Data and domain models
+│       ├── routes/                # API endpoints routing
+│       └── socket/                # Real-time/socket logic
+│
+├── Frontend
+│   ├── .gitignore             # Git ignore rules for frontend
+│   ├── README.md              # Frontend documentation
+│   ├── components.json        # UI component list/configuration
+│   ├── eslint.config.js       # Linting configuration
+│   ├── index.html             # Web app HTML entry
+│   ├── package.json           # Frontend dependencies and scripts
+│   ├── package-lock.json      # Frontend dependency lock file
+│   ├── tsconfig.app.json      # TS config for app
+│   ├── tsconfig.json          # General TS config
+│   ├── tsconfig.node.json     # Node-specific TS config
+│   ├── vite.config.ts         # Vite build config
+│   ├── public                 # Static assets (e.g., favicon, icons)
+│   └── src
+│       ├── App.tsx                # Main React component
+│       ├── assets/                # Static and media assets
+│       ├── components/            # UI components
+│       ├── context/               # React contexts (state management)
+│       ├── hooks/                 # Custom hooks
+│       ├── index.css              # Main stylesheet
+│       ├── lib/                   # Utility functions
+│       ├── main.tsx               # React app entry-point
+│       └── pages/                 # Routed pages/components
 ```
 
-### 2. Backend Setup
+- *Backend*: Implements the API, real-time features, and infrastructure logic (Node.js/TypeScript).
+- *Frontend*: Handles the UI, user interaction, and routing (React + Vite + TypeScript).
 
-```bash
-cd backend
-npm install
-```
+> For deeper details, see each section’s README file.
 
-Create a `.env` file in the `backend` directory (copy from `.env.example`):
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/vi-slides?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-key
-JWT_EXPIRE=7d
-NODE_ENV=development
-```
-*Note: You must replace `MONGODB_URI` with your actual MongoDB Atlas connection string.*
+## Tech Stack
+- Frontend: React, TypeScript, Vite, Socket.io-client
+- Backend: Node.js, Express, Socket.io, MongoDB
+- UI Components: shadcn/ui, Custom components
+- Real-time: WebRTC, MediaStream API (for audio)
 
-Start the backend server:
-```bash
-npm run dev
-```
+## Contributors
+- Jojan Joji ([joj48](https://github.com/joj48))
+- Ayush Mishra ([codefixxx](https://github.com/codefixxx))
+- Tanu Mourya ([tanu236gakt](https://github.com/tanu236gakt))
+- Aniket Raj Sinha ([aniketsinha05](https://github.com/aniketsinha05))
+- Vikas Sharma ([Vikas-Sharma04](https://github.com/Vikas-Sharma04))
 
-### 3. Frontend Setup
-
-Open a new terminal:
-```bash
-cd frontend
-npm install
-```
-
-Create a `.env` file in the `frontend` directory:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-Start the frontend development server:
-```bash
-npm run dev
-```
-
-### 4. Verification
-
-- Open your browser to `http://localhost:5173`
-- Register a new account (Select Teacher or Student role)
-- You should be redirected to the secure dashboard
-- Check MongoDB Atlas to see the created user document
-
-## 📝 Roadmap
-
-- [x] **Phase 1: Project Setup & Authentication**
-- [ ] Phase 2: Class Session Management
-- [ ] Phase 3: Question Submission System
-- [ ] Phase 4: AI Analysis & Integration
-- [ ] Phase 5: Teacher Insights Dashboard
-- [ ] Phase 6: History & Reports
-
-## License
-
-MIT License
+## Mentors
+- Mr. Rohit Sharma ([imrohitvk](https://github.com/imrohitvk))
