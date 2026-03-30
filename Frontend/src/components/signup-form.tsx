@@ -22,15 +22,16 @@ import { useState } from "react";
 import Logo from "./Logo";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupForm() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     fullname: "",
@@ -42,7 +43,6 @@ export default function SignupForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError(null);
   };
 
   const handleRoleChange = (value: string) => {
@@ -50,19 +50,33 @@ export default function SignupForm() {
   };
 
   const handleSubmit = async () => {
-    setError(null);
 
     // Basic client-side validation
     if (!formData.fullname || !formData.email || !formData.password) {
-      setError("All fields are required.");
+      const msg = "All fields are required.";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      const msg = "Passwords do not match.";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      const msg = "Password must be at least 6 characters.";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -74,30 +88,48 @@ export default function SignupForm() {
         password: formData.password,
         role: formData.role,
       })
+      toast({
+        title: "Account Created Successfully",
+        description: "Welcome! Your account has been created.",
+      });
       navigate("/dashboard"); // redirect on success
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
-          setError("Network issue. Please check your connection.");
+          const msg = "Network issue. Please check your connection.";
+          toast({
+            title: "Network Error",
+            description: msg,
+            variant: "destructive",
+          });
           return;
         }
 
         const status = err.response.status;
+        let errorMessage = "Registration failed. Please try again.";
 
         switch (status) {
           case 400:
-            setError("Unable to register with provided details.");
+            errorMessage = "Unable to register with provided details.";
             break;
 
           case 500:
-            setError("Something went wrong. Please try again later.");
+            errorMessage = "Something went wrong. Please try again later.";
             break;
-
-          default:
-            setError("Registration failed. Please try again.");
         }
+        
+        toast({
+          title: "Registration Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } else {
-        setError("Unexpected error occurred.");
+        const msg = "Unexpected error occurred.";
+        toast({
+          title: "Error",
+          description: msg,
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -123,12 +155,6 @@ export default function SignupForm() {
 
           {/* Content */}
           <CardContent className="space-y-5 px-8 pb-6">
-            {/* Global error */}
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-                {error}
-              </p>
-            )}
 
             {/* Role */}
             <div className="space-y-2">

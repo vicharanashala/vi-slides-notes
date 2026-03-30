@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ListTodo, ClipboardList, Trash } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   getAssignments,
@@ -21,6 +22,7 @@ import {
 
 export default function TeacherAssignments() {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,11 @@ export default function TeacherAssignments() {
       setAssignments(res.data.assignments);
     } catch (err) {
       console.error(err);
-      alert("Failed to load assignments");
+      toast({
+        title: "Load Failed",
+        description: "Failed to load assignments",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -52,7 +58,14 @@ export default function TeacherAssignments() {
   // ➕ CREATE
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter an assignment title",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -71,9 +84,18 @@ export default function TeacherAssignments() {
       setMaxMarks("100");
       setDeadline("");
       setShowCreate(false);
+
+      toast({
+        title: "Assignment Created",
+        description: "Your assignment has been created successfully.",
+      });
     } catch (err) {
       console.error(err);
-      alert("Failed to create assignment");
+      toast({
+        title: "Creation Failed",
+        description: "Failed to create assignment",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -88,9 +110,17 @@ export default function TeacherAssignments() {
     try {
       await deleteAssignmentAPI(id);
       await fetchAssignments();
+      toast({
+        title: "Assignment Deleted",
+        description: "The assignment has been deleted successfully.",
+      });
     } catch (err) {
       console.error(err);
-      alert("Delete failed");
+      toast({
+        title: "Deletion Failed",
+        description: "Failed to delete assignment",
+        variant: "destructive",
+      });
     }
   };
 

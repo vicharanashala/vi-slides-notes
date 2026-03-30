@@ -7,9 +7,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
+  const { toast } = useToast();
 
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -46,7 +48,13 @@ export default function EditProfile() {
       !formData.oldPassword &&
       !formData.newPassword
     ) {
-      setError("Nothing to update");
+      const msg = "Nothing to update";
+      setError(msg);
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -55,7 +63,13 @@ export default function EditProfile() {
       (formData.oldPassword && !formData.newPassword) ||
       (!formData.oldPassword && formData.newPassword)
     ) {
-      setError("Both old and new password are required");
+      const msg = "Both old and new password are required";
+      setError(msg);
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
     // Confirm password check
@@ -63,7 +77,13 @@ export default function EditProfile() {
       formData.newPassword &&
       formData.newPassword !== formData.confirmPassword
     ) {
-      setError("Passwords do not match");
+      const msg = "Passwords do not match";
+      setError(msg);
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
     setIsLoading(true);
@@ -71,7 +91,12 @@ export default function EditProfile() {
     try {
       await updateUser(formData);
 
-      setSuccess("Profile updated successfully");
+      const msg = "Profile updated successfully";
+      setSuccess(msg);
+      toast({
+        title: "Profile Updated",
+        description: msg,
+      });
 
       setFormData((prev) => ({
         ...prev,
@@ -80,7 +105,13 @@ export default function EditProfile() {
         confirmPassword: "",
       }));
     } catch (err: any) {
-      setError(err.response?.data?.message || "Something went wrong");
+      const errorMsg = err.response?.data?.message || "Something went wrong";
+      setError(errorMsg);
+      toast({
+        title: "Update Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

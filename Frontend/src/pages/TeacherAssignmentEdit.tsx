@@ -9,10 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherAssignmentEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [form, setForm] = useState<any>({
     title: "",
@@ -39,8 +41,21 @@ export default function TeacherAssignmentEdit() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    await updateAssignment(id!, form);
-    navigate(`/assignments/${id}`);
+    try {
+      await updateAssignment(id!, form);
+      toast({
+        title: "Assignment Updated",
+        description: "The assignment has been updated successfully.",
+      });
+      navigate(`/assignments/${id}`);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update assignment",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

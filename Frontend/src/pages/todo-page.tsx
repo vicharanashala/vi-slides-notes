@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus, ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -16,6 +17,7 @@ export default function TodoPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Fetch todos on mount
   useEffect(() => {
@@ -26,23 +28,35 @@ export default function TodoPage() {
         setTodos(res.data.todos);
       } catch (err) {
         console.error("Failed to load todos:", err);
-        alert("Failed to load todos");
+        toast({
+          title: "Load Failed",
+          description: "Failed to load todos",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadTodos();
-  }, []);
+  }, [toast]);
 
   // Add new todo
   const handleAddTodo = async () => {
     if (!title.trim()) {
-      alert("Please enter a title");
+      toast({
+        title: "Validation Error",
+        description: "Please enter a title",
+        variant: "destructive",
+      });
       return;
     }
     if (!dueDate) {
-      alert("Please select a due date");
+      toast({
+        title: "Validation Error",
+        description: "Please select a due date",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -55,9 +69,17 @@ export default function TodoPage() {
       setTitle("");
       setDescription("");
       setDueDate("");
+      toast({
+        title: "Todo Created",
+        description: "Your new todo has been added successfully.",
+      });
     } catch (err) {
       console.error("Failed to create todo:", err);
-      alert("Failed to create todo");
+      toast({
+        title: "Creation Failed",
+        description: "Failed to create todo",
+        variant: "destructive",
+      });
     }
   };
 
@@ -68,9 +90,18 @@ export default function TodoPage() {
         completed: !todo.completed,
       });
       setTodos(todos.map((t) => (t._id === todo._id ? res.data : t)));
+      const status = !todo.completed ? "marked as complete" : "marked as pending";
+      toast({
+        title: "Todo Updated",
+        description: `Todo has been ${status}.`,
+      });
     } catch (err) {
       console.error("Failed to update todo:", err);
-      alert("Failed to update todo");
+      toast({
+        title: "Update Failed",
+        description: "Failed to update todo",
+        variant: "destructive",
+      });
     }
   };
 
@@ -79,9 +110,17 @@ export default function TodoPage() {
     try {
       await deleteTodo(id);
       setTodos(todos.filter((t) => t._id !== id));
+      toast({
+        title: "Todo Deleted",
+        description: "Your todo has been deleted successfully.",
+      });
     } catch (err) {
       console.error("Failed to delete todo:", err);
-      alert("Failed to delete todo");
+      toast({
+        title: "Deletion Failed",
+        description: "Failed to delete todo",
+        variant: "destructive",
+      });
     }
   };
 
@@ -94,8 +133,17 @@ export default function TodoPage() {
       });
       setTodos(todos.map(t => (t._id === id ? res.data : t)));
       setEditingTodoId(null);
+      toast({
+        title: "Todo Updated",
+        description: "Your todo has been updated successfully.",
+      });
     } catch (err) {
-      alert("Failed to update todo");
+      console.error("Failed to update todo:", err);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update todo",
+        variant: "destructive",
+      });
     }
   };
 

@@ -8,14 +8,16 @@ import Logo from "./Logo";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from '@/hooks/use-toast';
 
 export default function SigninForm() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const { toast } = useToast();
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -24,33 +26,55 @@ export default function SigninForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!formData.email || !formData.password) {
-      setError("All fields are required.");
+      const msg = "All fields are required.";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
     try {
       await login({ email:formData.email, password:formData.password });
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
       navigate("/dashboard");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
 
         if (status === 401 || status === 404) {
-          setError("Invalid email or password.");
+          const msg = "Invalid email or password.";
+          toast({
+            title: "Login Failed",
+            description: msg,
+            variant: "destructive",
+          });
         } else {
-          setError("Login failed. Please try again.");
+          const msg = "Login failed. Please try again.";
+          toast({
+            title: "Error",
+            description: msg,
+            variant: "destructive",
+          });
         }
       } else {
-        setError("Something went wrong. Please try again.");
+        const msg = "Something went wrong. Please try again.";
+        toast({
+          title: "Error",
+          description: msg,
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -74,14 +98,6 @@ export default function SigninForm() {
           <CardContent className="p-10">
 
             <form onSubmit={handleSubmit} className="space-y-6">
-
-              {/* Global error */}
-              {error && (
-                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-                  {error}
-                </p>
-              )}
-
               {/* Email */}
               <div>
                 <Label htmlFor="email" className="text-base font-medium text-muted-foreground">

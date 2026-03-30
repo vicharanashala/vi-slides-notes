@@ -9,10 +9,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import { getAssignments, type Assignment } from "@/lib/api";
 
 export default function Assignment() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,15 +24,21 @@ export default function Assignment() {
       try {
         const res = await getAssignments();
         setAssignments(res.data.assignments);
-      } catch {
-        setError("Failed to load assignments.");
+      } catch (err) {
+        const errorMsg = "Failed to load assignments.";
+        setError(errorMsg);
+        toast({
+          title: "Load Failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchAssignments();
-  }, []);
+  }, [toast]);
 
   return (
     <div className="flex flex-col min-h-dvh px-4 py-12">
