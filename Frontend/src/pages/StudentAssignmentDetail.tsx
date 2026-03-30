@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   getSingleAssignment,
   submitAssignment,
@@ -20,6 +21,7 @@ import {
 export default function AssignmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,13 @@ export default function AssignmentDetail() {
 
   const handleSubmit = async () => {
     if (!fileUrl.trim()) {
-      setSubmitError("Please enter a file URL.");
+      const msg = "Please enter a file URL.";
+      setSubmitError(msg);
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -57,13 +65,24 @@ export default function AssignmentDetail() {
 
     try {
       await submitAssignment(id!, fileUrl);
-      setSubmitSuccess("Assignment submitted successfully!");
+      const msg = "Assignment submitted successfully!";
+      setSubmitSuccess(msg);
+      toast({
+        title: "Submission Successful",
+        description: msg,
+      });
       setFileUrl("");
       const res = await getSingleAssignment(id!);
       setAssignment(res.data.assignment);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setSubmitError(msg || "Submission failed.");
+      const errorMsg = msg || "Submission failed.";
+      setSubmitError(errorMsg);
+      toast({
+        title: "Submission Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

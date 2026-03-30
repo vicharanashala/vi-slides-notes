@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   getSingleAssignment,
@@ -15,6 +16,7 @@ import type { AllSubmission } from "@/lib/api";
 export default function TeacherAssignmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -46,10 +48,18 @@ export default function TeacherAssignmentDetail() {
     if (!confirm("Delete this assignment?")) return;
     try {
       await deleteAssignmentAPI(id!);
+      toast({
+        title: "Assignment Deleted",
+        description: "The assignment has been deleted successfully.",
+      });
       navigate("/assignments");
     } catch (err) {
       console.error(err);
-      alert("Delete failed");
+      toast({
+        title: "Deletion Failed",
+        description: "Failed to delete assignment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -70,10 +80,18 @@ export default function TeacherAssignmentDetail() {
       );
       setSubmissions(filtered);
       setSubmissionsVisible(true);
+      toast({
+        title: "Submissions Loaded",
+        description: `Found ${filtered.length} submission(s) for this assignment.`,
+      });
     } catch (err: any) {
-      setSubmissionsError(
-        err?.response?.data?.message || "Failed to load submissions"
-      );
+      const errorMsg = err?.response?.data?.message || "Failed to load submissions";
+      setSubmissionsError(errorMsg);
+      toast({
+        title: "Load Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
       setSubmissionsLoading(false);
     }
@@ -93,7 +111,7 @@ export default function TeacherAssignmentDetail() {
         <Card className="border border-foreground/10 bg-card/80 rounded-2xl shadow-xl p-8 text-center">
           <p className="text-muted-foreground mb-4">Assignment not found.</p>
           <Button
-            className="border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 text-white"
+            className="border-0 bg-linear-to-r from-purple-600 via-blue-500 to-indigo-500 text-white"
             onClick={() => navigate("/assignments")}
           >
             ← Back to Assignments

@@ -15,10 +15,12 @@ import { AssignmentsCard } from "./assignments-card";
 import { useNavigate } from "react-router-dom";
 import { createClass, startClass } from "@/lib/api";
 import TodoButton from "@/components/todo-button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [sessionTitle, setSessionTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -28,7 +30,12 @@ export default function TeacherDashboard() {
     if (isCreating) return;
 
     if (!sessionTitle.trim()) {
-      alert("Please enter a session title");
+      const msg = "Please enter a session title";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -44,6 +51,11 @@ export default function TeacherDashboard() {
 
       await startClass(newClass._id);
 
+      toast({
+        title: "Session Created",
+        description: "Your live session has been started successfully.",
+      });
+
       setSessionTitle("");
       navigate(`/session/${newClass._id}`);
     } catch (error: any) {
@@ -54,7 +66,11 @@ export default function TeacherDashboard() {
         error?.message ||
         "Failed to start session";
 
-      alert(message);
+      toast({
+        title: "Session Creation Failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsCreating(false);
     }

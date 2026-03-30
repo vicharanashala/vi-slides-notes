@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Textarea } from "./ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { getAIAnswer } from "@/lib/api";
 
 type Question = {
@@ -82,6 +83,7 @@ export function AppSidebar({
   const [answer, setAnswer] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const activeQuestion = questions.find((q) => q.id === activeId);
 
@@ -91,9 +93,20 @@ export function AppSidebar({
       setLoading(true);
       const res = await getAIAnswer(activeQuestion.question);
       const raw = res.data?.answer;
-      if (raw) setAnswer(raw.trim());
+      if (raw) {
+        setAnswer(raw.trim());
+        toast({
+          title: "AI Answer Generated",
+          description: "Answer has been generated using AI.",
+        });
+      }
     } catch (err) {
       console.error("AI answer error:", err);
+      toast({
+        title: "AI Generation Failed",
+        description: "Failed to generate AI answer. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { joinClass } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -144,10 +145,16 @@ export function JoinSessionCard() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleJoin = async () => {
     if (!code.trim()) {
-      alert("Enter session code");
+      const msg = "Enter session code";
+      toast({
+        title: "Validation Error",
+        description: msg,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -161,10 +168,20 @@ export function JoinSessionCard() {
         throw new Error("Invalid session");
       }
 
+      toast({
+        title: "Session Joined",
+        description: "You have successfully joined the session.",
+      });
+
       navigate(`/session/${classId}`);
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || "Invalid session code");
+      const errorMsg = err?.response?.data?.message || "Invalid session code";
+      toast({
+        title: "Join Failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

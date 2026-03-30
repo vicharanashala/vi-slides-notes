@@ -16,11 +16,13 @@ import { PollContainer } from "./SessionPage/components/PollContainer";
 import { endClass } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getSocket } from "@/lib/socket";
+import { useToast } from "@/hooks/use-toast";
 
 
 const SessionPage = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { classData, loading, error } = useClassData(classId);
 
   const [sharedFile, setSharedFile] = useState<any | null>(null);
@@ -72,10 +74,19 @@ const SessionPage = () => {
       }
       handleStreamStopped();
       await endClass(classId!);
+      toast({
+        title: "Session Ended",
+        description: "The live session has been ended successfully.",
+      });
       getSocket().emit("end_class", { classId });
       navigate("/dashboard");
     } catch (err) {
       console.error("End session failed", err);
+      toast({
+        title: "Session End Failed",
+        description: "Failed to end the session. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
