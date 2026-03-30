@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Trash2, Plus, ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -18,6 +19,17 @@ export default function TodoPage() {
   const [editDescription, setEditDescription] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
   // Fetch todos on mount
   useEffect(() => {
@@ -106,22 +118,29 @@ export default function TodoPage() {
   };
 
   // Delete todo
-  const handleDeleteTodo = async (id: string) => {
-    try {
-      await deleteTodo(id);
-      setTodos(todos.filter((t) => t._id !== id));
-      toast({
-        title: "Todo Deleted",
-        description: "Your todo has been deleted successfully.",
-      });
-    } catch (err) {
-      console.error("Failed to delete todo:", err);
-      toast({
-        title: "Deletion Failed",
-        description: "Failed to delete todo",
-        variant: "destructive",
-      });
-    }
+  const handleDeleteTodo = (id: string) => {
+    setDeleteConfirm({
+      open: true,
+      title: "Delete Todo",
+      description: "Are you sure you want to delete this todo? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteTodo(id);
+          setTodos(todos.filter((t) => t._id !== id));
+          toast({
+            title: "Todo Deleted",
+            description: "Your todo has been deleted successfully.",
+          });
+        } catch (err) {
+          console.error("Failed to delete todo:", err);
+          toast({
+            title: "Deletion Failed",
+            description: "Failed to delete todo",
+            variant: "destructive",
+          });
+        }
+      },
+    });
   };
 
   // Update todo (Edit)
@@ -247,6 +266,7 @@ export default function TodoPage() {
   );
 
   return (
+    <>
     <div className="flex flex-col min-h-dvh px-4 py-12">
       <div className="mx-auto w-full max-w-2xl flex flex-col gap-8">
         {/* Back Button */}
@@ -290,6 +310,7 @@ export default function TodoPage() {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
                 className="flex-1"
               />
             </div>
@@ -392,5 +413,14 @@ export default function TodoPage() {
         )}
       </div>
     </div>
+
+    <ConfirmDialog
+      open={deleteConfirm.open}
+      onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+      title={deleteConfirm.title}
+      description={deleteConfirm.description}
+      onConfirm={deleteConfirm.onConfirm}
+    />
+    </>
   );
 }

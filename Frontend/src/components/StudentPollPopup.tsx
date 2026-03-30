@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type Poll = {
   id: number;
@@ -25,13 +26,18 @@ export function StudentPollPopup({
   onSubmit,
 }: StudentPollPopupProps) {
   const [selected, setSelected] = useState<number | null>(null);
+  const { toast } = useToast();
 
-  // ✅ Keep safety check (VERY IMPORTANT)
+  // Keep safety check (VERY IMPORTANT)
   if (!poll || !poll.isActive) return null;
 
   const handleSubmit = () => {
     if (selected === null) {
-      alert("Please select an option");
+      toast({
+        title: "Selection Required",
+        description: "Please select an option before submitting your vote.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -46,7 +52,6 @@ export function StudentPollPopup({
           <DialogTitle className="text-lg">{poll.question}</DialogTitle>
         </DialogHeader>
 
-        {/* ✅ Improved options UI */}
         <div className="space-y-3">
           {poll.options.map((option, index) => (
             <Button
@@ -63,7 +68,6 @@ export function StudentPollPopup({
           ))}
         </div>
 
-        {/* ✅ Keep footer (important for consistency) */}
         <DialogFooter>
           <Button
             onClick={handleSubmit}

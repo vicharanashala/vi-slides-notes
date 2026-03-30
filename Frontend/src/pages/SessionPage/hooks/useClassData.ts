@@ -9,6 +9,7 @@ export const useClassData = (classId: string | undefined) => {
   const [classData, setClassData] = useState<GetClassResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
 
   useEffect(() => {
     if (!classId) return;
@@ -20,7 +21,7 @@ export const useClassData = (classId: string | undefined) => {
         setClassData(res.data);
 
         if (!res.data.isLive) {
-          alert("Session has ended");
+          setSessionEnded(true);
           navigate("/dashboard");
         }
       } catch (err: unknown) {
@@ -41,5 +42,6 @@ export const useClassData = (classId: string | undefined) => {
     classData,
     loading,
     error,
+    sessionEnded,
   };
 };

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ListTodo, ClipboardList, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import {
   getAssignments,
@@ -33,8 +34,19 @@ export default function TeacherAssignments() {
   const [maxMarks, setMaxMarks] = useState("100");
   const [deadline, setDeadline] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
-  // 🔄 FETCH
+  // FETCH
   const fetchAssignments = async () => {
     try {
       const res = await getAssignments();
@@ -101,30 +113,36 @@ export default function TeacherAssignments() {
     }
   };
 
-  // 🗑️ DELETE
+  // DELETE
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!confirm("Delete this assignment?")) return;
-
-    try {
-      await deleteAssignmentAPI(id);
-      await fetchAssignments();
-      toast({
-        title: "Assignment Deleted",
-        description: "The assignment has been deleted successfully.",
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Deletion Failed",
-        description: "Failed to delete assignment",
-        variant: "destructive",
-      });
-    }
+    setDeleteConfirm({
+      open: true,
+      title: "Delete Assignment",
+      description: "Are you sure you want to delete this assignment? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteAssignmentAPI(id);
+          await fetchAssignments();
+          toast({
+            title: "Assignment Deleted",
+            description: "The assignment has been deleted successfully.",
+          });
+        } catch (err) {
+          console.error(err);
+          toast({
+            title: "Deletion Failed",
+            description: "Failed to delete assignment",
+            variant: "destructive",
+          });
+        }
+      },
+    });
   };
 
   return (
+    <>
     <div className="min-h-screen p-6">
       <div className="h-20 mb-6" />
       <div className="max-w-5xl mx-auto">
@@ -151,7 +169,7 @@ export default function TeacherAssignments() {
               </Button>
 
               <Button
-                className="h-10 px-4 text-sm font-semibold border-0 bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
+                className="h-10 px-4 text-sm font-semibold border-0 bg-linear-to-r from-purple-600 via-blue-500 to-indigo-500 hover:opacity-90 text-white"
                 onClick={() => setShowCreate((v) => !v)}
               >
                 {showCreate ? "Cancel" : "+ Create Assignment"}
@@ -200,7 +218,7 @@ export default function TeacherAssignments() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe the assignment..."
-                    className="text-sm bg-muted/50 border border-foreground/10 rounded-md resize-none min-h-[80px]"
+                    className="text-sm bg-muted/50 border border-foreground/10 rounded-md resize-none min-h-20"
                   />
                 </div>
 
@@ -225,6 +243,7 @@ export default function TeacherAssignments() {
                       type="datetime-local"
                       value={deadline}
                       onChange={(e) => setDeadline(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
                       className="h-9 text-sm bg-muted/50 border border-foreground/10 rounded-md"
                     />
                   </div>
@@ -313,5 +332,14 @@ export default function TeacherAssignments() {
         )}
       </div>
     </div>
+
+    <ConfirmDialog
+      open={deleteConfirm.open}
+      onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+      title={deleteConfirm.title}
+      description={deleteConfirm.description}
+      onConfirm={deleteConfirm.onConfirm}
+    />
+    </>
   );
 }

@@ -20,6 +20,7 @@ export const useSessionSocket = ({
   setPastPolls,
   handleStreamStopped,
   currentPoll,
+  onSessionEnded,
 }: any) => {
   useEffect(() => {
     if (!classId) return;
@@ -48,7 +49,7 @@ export const useSessionSocket = ({
         micStream.current = null;
       }
 
-      alert("Session ended by instructor");
+      onSessionEnded();
       socket.emit("leave_class_room", { classId });
       navigate("/dashboard");
     };

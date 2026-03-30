@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/question-sidebar";
 import { Topbar } from "@/components/topbar";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useClassData } from "./SessionPage/hooks/useClassData";
@@ -17,13 +17,14 @@ import { endClass } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getSocket } from "@/lib/socket";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 
 const SessionPage = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { classData, loading, error } = useClassData(classId);
+  const { classData, loading, error, sessionEnded } = useClassData(classId);
 
   const [sharedFile, setSharedFile] = useState<any | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -34,6 +35,17 @@ const SessionPage = () => {
   const [pastPolls, setPastPolls] = useState<any[]>([]);
   const [showPastPolls, setShowPastPolls] = useState(false);
   const [activeId, setActiveId] = useState<string>();
+  const [endSessionConfirm, setEndSessionConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
   // ================== REFS ==================
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,6 +65,17 @@ const SessionPage = () => {
   );
   const [showWhiteboard, setShowWhiteboard] = useState(false);
 
+  // Show toast when session ends
+  useEffect(() => {
+    if (sessionEnded) {
+      toast({
+        title: "Session Ended",
+        description: "The session has ended. You have been redirected to the dashboard.",
+        variant: "destructive",
+      });
+    }
+  }, [sessionEnded, toast]);
+
 
   // ================== MIC CONTROL ==================
   const handleToggleMic = () => {
@@ -66,28 +89,35 @@ const SessionPage = () => {
   };
 
   // ================== END SESSION ==================
-  const handleEndSession = async () => {
-    try {
-      if (micStream.current) {
-        micStream.current.getTracks().forEach((track) => track.stop());
-        micStream.current = null;
-      }
-      handleStreamStopped();
-      await endClass(classId!);
-      toast({
-        title: "Session Ended",
-        description: "The live session has been ended successfully.",
-      });
-      getSocket().emit("end_class", { classId });
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("End session failed", err);
-      toast({
-        title: "Session End Failed",
-        description: "Failed to end the session. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleEndSession = () => {
+    setEndSessionConfirm({
+      open: true,
+      title: "End Session",
+      description: "Are you sure you want to end this live session? This will disconnect all students and cannot be undone.",
+      onConfirm: async () => {
+        try {
+          if (micStream.current) {
+            micStream.current.getTracks().forEach((track) => track.stop());
+            micStream.current = null;
+          }
+          handleStreamStopped();
+          await endClass(classId!);
+          toast({
+            title: "Session Ended",
+            description: "The live session has been ended successfully.",
+          });
+          getSocket().emit("end_class", { classId });
+          navigate("/dashboard");
+        } catch (err) {
+          console.error("End session failed", err);
+          toast({
+            title: "Session End Failed",
+            description: "Failed to end the session. Please try again.",
+            variant: "destructive",
+          });
+        }
+      },
+    });
   };
 
   // ================== POLL SUBMIT SESSION ==================
@@ -128,6 +158,13 @@ const handleViewPastPolls = () => {
     setPastPolls,
     handleStreamStopped,
     currentPoll,
+    onSessionEnded: () => {
+      toast({
+        title: "Session Ended",
+        description: "The session has been ended by the instructor.",
+        variant: "destructive",
+      });
+    },
   });
 
   if (loading)
@@ -145,6 +182,7 @@ const handleViewPastPolls = () => {
     );
 
   return (
+    <>
     <SidebarProvider>
       <AppSidebar
         questions={questions}
@@ -208,6 +246,15 @@ const handleViewPastPolls = () => {
         onClosePastPolls={() => setShowPastPolls(false)}
       />
     </SidebarProvider>
+
+    <ConfirmDialog
+      open={endSessionConfirm.open}
+      onOpenChange={(open) => setEndSessionConfirm({ ...endSessionConfirm, open })}
+      title={endSessionConfirm.title}
+      description={endSessionConfirm.description}
+      onConfirm={endSessionConfirm.onConfirm}
+    />
+    </>
   );
 };
 
