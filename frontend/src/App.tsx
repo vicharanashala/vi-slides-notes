@@ -11,7 +11,7 @@ import Assignments from './pages/Assignments';
 import AssignmentDetails from './pages/AssignmentDetails';
 import GuestJoinForm from './pages/GuestJoinForm';
 import QueryPPTView from './pages/QueryPPTView';
-import QueryAsk from './pages/QueryAsk';
+import QueryAsk from './pages/QueryAsk'
 
 const App: React.FC = () => {
     return (

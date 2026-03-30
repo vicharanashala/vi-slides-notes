@@ -2566,6 +2566,8 @@ const SessionView: React.FC = () => {
 
     const isTeacher = user?.role?.toLowerCase() === 'teacher';
 
+    const [isSlidesMode, setIsSlidesMode] = useState(false);    //Slides mode
+
     useEffect(() => {
         const fetchData = async () => {
             if (!code) return;
@@ -2995,6 +2997,14 @@ const SessionView: React.FC = () => {
     };
 
 
+    //Full screen 
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    };
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
@@ -3040,10 +3050,30 @@ const SessionView: React.FC = () => {
                         <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-primary-light)' }}>{session.code}</span>
                     </div>
 
-
-
+                    //Slides mode and full screen button
                     {user?.role?.toLowerCase() === 'teacher' ? (
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setIsSlidesMode(!isSlidesMode)}
+                                className="btn btn-secondary"
+                                style={{
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    color: 'var(--color-primary-light)',
+                                    borderColor: 'rgba(99, 102, 241, 0.2)'
+                                }}
+                                >
+                            {isSlidesMode ? "Exit Slides" : "Slides Mode"}
+                            </button>
+
+                            {isSlidesMode && (
+                                <button
+                                    onClick={toggleFullscreen}
+                                    className="btn btn-secondary"
+                                >
+                                    Fullscreen
+                                </button>
+                            )}
+                            
                             <button
                                 onClick={() => setShowQRModal(true)}
                                 className="btn btn-secondary"
@@ -3172,7 +3202,7 @@ const SessionView: React.FC = () => {
                         <button onClick={handleLeaveSession} className="btn btn-secondary">
                             Leave
                         </button>
-                    )}
+                     )}     
                 </div>
             </nav >
             {error && <div className="container" style={{ marginTop: '1rem' }}><div className="alert alert-error">{error}</div></div>}
@@ -3420,29 +3450,72 @@ const SessionView: React.FC = () => {
                             </button>
                         </div>
 
-                        {selectedQuestion ? (
-                            <div className="anim-scale-up" style={{
-                                width: '100%',
-                                height: '100%',
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column'
-                            }}>
+                        {selectedQuestion && (
+                            isSlidesMode ? (
+
+                                // SLIDE MODE
+                                <div style={{ textAlign: "center", padding: "40px", position: "relative" }}>
+
+                                <button
+                                    onClick={() => {
+                                        if (!document.fullscreenElement) {
+                                        document.documentElement.requestFullscreen();
+                                        } else {
+                                        document.exitFullscreen();
+                                        }
+                                    }}
+                                    style={{
+                                        position: "absolute",
+                                        right: "20px",
+                                        top: "20px",
+                                        padding: "6px 10px",
+                                        cursor: "pointer"
+                                    }}
+                                    >
+                                    ⛶
+                                    </button>
+
+                                <p style={{ fontSize: "16px", opacity: 0.5 }}>
+                                    {selectedQuestion.user?.name || "Anonymous"}
+                                </p>
+
+                                <h1 style={{
+                                    fontSize: "56px",
+                                    fontWeight: "bold",
+                                    margin: "30px 0"
+                                }}>
+                                    {selectedQuestion.content}
+                                </h1>
+
+                                <p style={{ fontSize: "14px", opacity: 0.7 }}>
+                                    {selectedQuestion.teacherAnswer ? "✔ Answered" : "❌ Not Answered"}
+                                </p>
+
+                                </div>
+
+                            ) : (
+
+                                // NORMAL MODE (OLD UI BACK)
+                                <div className="anim-scale-up">
                                 <QuestionCard
                                     question={selectedQuestion}
                                     isTeacher={isTeacher}
-                                    onUpdate={(updated) => setQuestions(prev => prev.map(item => item._id === updated._id ? updated : item))}
+                                    onUpdate={(updated) =>
+                                    setQuestions(prev =>
+                                        prev.map(item =>
+                                        item._id === updated._id ? updated : item
+                                        )
+                                    )
+                                    }
                                     onDelete={(id) => {
-                                        setQuestions(prev => prev.filter(item => item._id !== id));
-                                        if (selectedQuestionId === id) setSelectedQuestionId(null);
+                                    setQuestions(prev => prev.filter(item => item._id !== id));
+                                    if (selectedQuestionId === id) setSelectedQuestionId(null);
                                     }}
                                 />
-                            </div>
-                        ) : (
-                            <div style={{ textAlign: 'center', opacity: 0.5 }}>
-                                {/* <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👋</div> */}
-                            </div>
-                        )}
+                </div>
+
+            )
+            )}
                     </div>
                 </section>
 
