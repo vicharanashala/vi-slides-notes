@@ -1,0 +1,64 @@
+/* Button Component */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--gradient-orange);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(255, 149, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-orange);
+  border: 2px solid var(--color-orange);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gradient-orange);
+  color: #ffffff;
+}
+
+.btn-teal {
+  background: var(--gradient-teal);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+.btn-teal:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--color-orange);
+  color: var(--text-primary);
+}

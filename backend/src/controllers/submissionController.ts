@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Submission from '../models/Submission';
 import Assignment from '../models/Assignment';
 import User from '../models/User';
+import AssignmentGroupMembership from '../models/AssignmentGroupMembership';
 import { sendGradeNotification } from '../services/emailService';
 
 // @desc    Submit assignment
@@ -24,18 +25,29 @@ export const submitAssignment = async (req: Request, res: Response): Promise<voi
             return;
         }
 
+        const membership = await AssignmentGroupMembership.findOne({
+            student: req.user._id,
+            groupId: assignment.groupId
+        });
+
+        if (!membership) {
+            res.status(403).json({ success: false, message: 'Join this assignment group before submitting' });
+            return;
+        }
+
         // Check if already submitted
         const existingSubmission = await Submission.findOne({
             assignment: assignmentId,
             student: req.user._id
         });
 
+        // Keep submissions one-per-student per assignment.
         if (existingSubmission) {
             res.status(400).json({ success: false, message: 'You have already submitted this assignment' });
             return;
         }
 
-        // Check if submission is late
+        // Mark whether the student submitted after the deadline.
         const isLate = new Date() > new Date(assignment.deadline);
 
         const submission = await Submission.create({

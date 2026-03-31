@@ -1,0 +1,252 @@
+/* Teacher Dashboard */
+
+.dashboard-page {
+  min-height: 100vh;
+  background: var(--gradient-page);
+}
+
+.dashboard-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* Stats Grid - Shared between teacher and student */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+}
+
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Icon wrap with background for asset images */
+.stat-icon-wrap {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+
+.sessions-icon {
+  background: rgba(255, 149, 0, 0.2);
+  color: var(--color-orange);
+}
+
+.assignments-icon {
+  background: rgba(15, 118, 110, 0.15);
+  color: var(--color-teal);
+}
+
+.overview-icon {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-blue);
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Section Title */
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Actions Grid - Large Card Style */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+.action-link {
+  text-decoration: none;
+}
+
+.action-card-large {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  min-height: 180px;
+  cursor: pointer;
+}
+
+.action-card-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.action-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-card-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.action-card-content p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Join Input Group - Student Dashboard */
+.join-input-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.join-input-group .vi-input {
+  flex: 1;
+  padding: 12px 16px;
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+/* Sessions List */
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.session-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.session-card.empty-state {
+  justify-content: center;
+  padding: var(--spacing-xl);
+}
+
+.session-info {
+  flex: 1;
+}
+
+.session-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-primary);
+}
+
+.session-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.meta-dot {
+  opacity: 0.4;
+}
+
+.session-code {
+  color: var(--color-teal);
+  font-weight: 500;
+}
+
+.empty-text {
+  color: var(--text-secondary);
+  margin: 0;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: var(--spacing-md);
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card-large {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    min-height: auto;
+  }
+
+  .action-card-content {
+    align-items: center;
+  }
+
+  .join-input-group {
+    flex-direction: column;
+  }
+
+  .session-card {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+  }
+}

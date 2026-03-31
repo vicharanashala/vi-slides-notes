@@ -4,7 +4,8 @@ import {
     getAllAssignments,
     getAssignmentById,
     updateAssignment,
-    deleteAssignment
+    deleteAssignment,
+    joinAssignmentGroup
 } from '../controllers/assignmentController';
 import { protect } from '../middleware/auth';
 
@@ -20,6 +21,10 @@ router.post('/', createAssignment);
 // @route   GET /api/assignments
 // @desc    Get all assignments (filtered by role)
 router.get('/', getAllAssignments);
+
+// @route   POST /api/assignments/join-group
+// @desc    Join assignment group as student
+router.post('/join-group', joinAssignmentGroup);
 
 // @route   GET /api/assignments/:id
 // @desc    Get assignment by ID

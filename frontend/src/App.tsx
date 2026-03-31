@@ -1,81 +1,71 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import SessionView from './pages/SessionView';
-import SessionSummary from './pages/SessionSummary';
-import Assignments from './pages/Assignments';
-import AssignmentDetails from './pages/AssignmentDetails';
-import GuestJoinForm from './pages/GuestJoinForm';
-import QueryPPTView from './pages/QueryPPTView';
-import QueryAsk from './pages/QueryAsk';
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+// Teacher pages
+import Dashboard from "./pages/teacher/Dashboard";
+import CreateSession from "./pages/teacher/CreateSession";
+import LiveSession from "./pages/teacher/LiveSession";
+import SessionSummary from "./pages/teacher/SessionSummary";
+import TeacherAssignments from "./pages/teacher/Assignments";
+import TeacherAssignmentDetail from "./pages/teacher/AssignmentDetail";
+// Student pages
+import StudentDashboard from "./pages/Student/dashboard";
+import StudentSession from "./pages/Student/Session";
+import StudentAssignments from "./pages/Student/Assignments";
+import StudentGroupAssignments from "./pages/Student/GroupAssignments";
+import StudentAssignmentDetail from "./pages/Student/AssignmentDetail";
+import "./App.css";
 
-const App: React.FC = () => {
-    return (
-        <AuthProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    {/* Public route for guest join and query ask */}
-                    <Route path="/join/:code" element={<GuestJoinForm />} />
-                    <Route path="/ask/:code" element={<QueryAsk />} />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code"
-                        element={
-                            <ProtectedRoute>
-                                <SessionView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code/summary"
-                        element={
-                            <ProtectedRoute>
-                                <SessionSummary />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments"
-                        element={
-                            <ProtectedRoute>
-                                <Assignments />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments/:id"
-                        element={
-                            <ProtectedRoute>
-                                <AssignmentDetails />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/query-mode"
-                        element={
-                            <ProtectedRoute>
-                                <QueryPPTView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-            </Router>
-        </AuthProvider>
-    );
-};
+function App() {
+  const { user } = useAuth();
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to={user ? (user.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard") : "/login"}
+              replace
+            />
+          }
+        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Teacher Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute role="teacher" />}>
+            <Route path="/teacher/dashboard" element={<Dashboard />} />
+            <Route path="/teacher/session/create" element={<CreateSession />} />
+            <Route path="/teacher/session/:id" element={<LiveSession />} />
+            <Route path="/teacher/session/:code/summary" element={<SessionSummary />} />
+            <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+            <Route path="/teacher/assignment/:id" element={<TeacherAssignmentDetail />} />
+          </Route>
+        </Route>
+
+        {/* Student Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute role="student" />}>
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/session" element={<StudentSession />} />
+            <Route path="/student/session/:sessionCode" element={<StudentSession />} />
+            <Route path="/student/assignments" element={<StudentAssignments />} />
+            <Route path="/student/assignments/group" element={<StudentGroupAssignments />} />
+            <Route path="/student/assignments/group/:groupId" element={<StudentGroupAssignments />} />
+            <Route path="/student/assignment/:id" element={<StudentAssignmentDetail />} />
+            <Route path="/student/assignments/detail" element={<StudentAssignmentDetail />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
 export default App;

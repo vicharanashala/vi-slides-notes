@@ -1,32 +1,29 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import type { UserRole } from "../types/auth";
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
+    role?: UserRole;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { isAuthenticated, loading } = useAuth();
+function ProtectedRoute({ role }: ProtectedRouteProps) {
+    const { user, loading } = useAuth();
+    const location = useLocation();
 
     if (loading) {
-        return (
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '100vh'
-            }}>
-                <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
-            </div>
-        );
+        return <div className="centered-loader">Loading your workspace...</div>;
     }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+    if (!user) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    return <>{children}</>;
-};
+    if (role && user.role !== role) {
+        const fallback = user.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard";
+        return <Navigate to={fallback} replace />;
+    }
+
+    return <Outlet />;
+}
 
 export default ProtectedRoute;

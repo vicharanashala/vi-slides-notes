@@ -3,6 +3,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IAssignment extends Document {
     title: string;
     description: string;
+    groupId: string;
+    referenceUrl?: string | null;
     teacher: mongoose.Types.ObjectId;
     maxMarks: number;
     deadline: Date;
@@ -19,6 +21,17 @@ const AssignmentSchema = new Schema<IAssignment>({
     description: {
         type: String,
         required: true
+    },
+    groupId: {
+        type: String,
+        required: true,
+        trim: true,
+        uppercase: true
+    },
+    referenceUrl: {
+        type: String,
+        default: null,
+        trim: true
     },
     teacher: {
         type: Schema.Types.ObjectId,

@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import http from 'http';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
 import connectDB from './config/database';
 import { initSocket } from './config/socket';
 import authRoutes from './routes/auth';
@@ -11,9 +12,10 @@ import pollRoutes from './routes/poll';
 import assignmentRoutes from './routes/assignment';
 import submissionRoutes from './routes/submission';
 import guestRoutes from './routes/guest';
+import dashboardRoutes from './routes/dashboard';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Initialize express app
 const app: Application = express();
@@ -38,6 +40,7 @@ app.use('/api/polls', pollRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/guest', guestRoutes); // Public routes for guest join
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check route
 app.get('/api/health', (req: Request, res: Response) => {
