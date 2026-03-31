@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, User, RegisterData, LoginData } from '../services/authService';
+import { authService, User, GoogleAuthData } from '../services/authService';
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (data: LoginData) => Promise<void>;
-    register: (data: RegisterData) => Promise<void>;
+    googleLogin: (data: GoogleAuthData) => Promise<void>;
     logout: () => void;
     updateUser: (user: User) => void;
     isAuthenticated: boolean;
@@ -29,21 +28,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Check if user is logged in on mount
+    const authStorage = localStorage;
+
     useEffect(() => {
         const initAuth = async () => {
-            const token = sessionStorage.getItem('token');
-            const storedUser = sessionStorage.getItem('user');
+            const token = authStorage.getItem('token');
+            const storedUser = authStorage.getItem('user');
 
             if (token && storedUser) {
                 try {
-                    // Verify token is still valid
                     const response = await authService.getCurrentUser();
                     setUser(response.user);
                 } catch (error) {
-                    // Token invalid, clear storage
-                    sessionStorage.removeItem('token');
-                    sessionStorage.removeItem('user');
+                    authStorage.removeItem('token');
+                    authStorage.removeItem('user');
                 }
             }
             setLoading(false);
@@ -52,36 +50,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initAuth();
     }, []);
 
-    const login = async (data: LoginData) => {
-        const response = await authService.login(data);
-        sessionStorage.setItem('token', response.token);
-        sessionStorage.setItem('user', JSON.stringify(response.user));
-        setUser(response.user);
-    };
-
-    const register = async (data: RegisterData) => {
-        const response = await authService.register(data);
-        sessionStorage.setItem('token', response.token);
-        sessionStorage.setItem('user', JSON.stringify(response.user));
+    const googleLogin = async (data: GoogleAuthData) => {
+        const response = await authService.googleLogin(data);
+        authStorage.setItem('token', response.token);
+        authStorage.setItem('user', JSON.stringify(response.user));
         setUser(response.user);
     };
 
     const logout = () => {
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('user');
+        authStorage.removeItem('token');
+        authStorage.removeItem('user');
         setUser(null);
     };
 
     const updateUser = (updatedUser: User) => {
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        authStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
     };
 
     const value: AuthContextType = {
         user,
         loading,
-        login,
-        register,
+        googleLogin,
         logout,
         updateUser,
         isAuthenticated: !!user

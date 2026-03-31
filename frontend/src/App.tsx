@@ -2,8 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import Register from './pages/Register.tsx';
 import Dashboard from './pages/Dashboard';
 import SessionView from './pages/SessionView';
 import SessionSummary from './pages/SessionSummary';
@@ -18,6 +19,7 @@ const App: React.FC = () => {
         <AuthProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
+                    <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     {/* Public route for guest join and query ask */}
@@ -71,7 +73,8 @@ const App: React.FC = () => {
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    {/* <Route path="/" element={<Navigate to="/dashboard" replace />} /> */}
+                    <Route path="*" element={<Navigate to="/" replace />} />                  
                 </Routes>
             </Router>
         </AuthProvider>
