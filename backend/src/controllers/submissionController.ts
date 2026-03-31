@@ -99,6 +99,45 @@ export const getSubmissionsByAssignment = async (req: Request, res: Response): P
     }
 };
 
+// @desc    Get recent submissions for teacher's assignments
+// @route   GET /api/submissions/teacher/recent
+// @access  Private (Teacher only)
+export const getTeacherRecentSubmissions = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (req.user?.role?.toLowerCase() !== 'teacher') {
+            res.status(403).json({ success: false, message: 'Only teachers can view recent submissions' });
+            return;
+        }
+
+        const parsedLimit = Number(req.query.limit);
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+            ? Math.min(Math.floor(parsedLimit), 50)
+            : 10;
+
+        const teacherAssignments = await Assignment.find({ teacher: req.user._id }).select('_id');
+        const assignmentIds = teacherAssignments.map((assignment) => assignment._id);
+
+        if (assignmentIds.length === 0) {
+            res.status(200).json({ success: true, data: [] });
+            return;
+        }
+
+        const submissions = await Submission.find({ assignment: { $in: assignmentIds } })
+            .populate('student', 'name email')
+            .populate('assignment', 'title groupId maxMarks deadline')
+            .sort({ submittedAt: -1 })
+            .limit(limit);
+
+        res.status(200).json({
+            success: true,
+            data: submissions
+        });
+    } catch (error) {
+        console.error('Get teacher recent submissions error:', error);
+        res.status(500).json({ success: false, message: 'Server error fetching recent submissions' });
+    }
+};
+
 // @desc    Get student's own submissions
 // @route   GET /api/submissions/my-submissions
 // @access  Private (Student only)

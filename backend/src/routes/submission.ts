@@ -2,6 +2,7 @@ import express from 'express';
 import {
     submitAssignment,
     getSubmissionsByAssignment,
+    getTeacherRecentSubmissions,
     getMySubmissions,
     gradeSubmission
 } from '../controllers/submissionController';
@@ -19,6 +20,10 @@ router.post('/', submitAssignment);
 // @route   GET /api/submissions/my-submissions
 // @desc    Get student's own submissions
 router.get('/my-submissions', getMySubmissions);
+
+// @route   GET /api/submissions/teacher/recent
+// @desc    Get teacher's recent submissions
+router.get('/teacher/recent', getTeacherRecentSubmissions);
 
 // @route   GET /api/submissions/assignment/:assignmentId
 // @desc    Get all submissions for an assignment (Teacher only)

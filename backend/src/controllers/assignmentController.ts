@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
 import Assignment from '../models/Assignment';
 import Submission from '../models/Submission';
+import AssignmentGroupMembership from '../models/AssignmentGroupMembership';
 
 // @desc    Create a new assignment
 // @route   POST /api/assignments
 // @access  Private (Teacher only)
 export const createAssignment = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { title, description, maxMarks, deadline } = req.body;
+        const { title, description, groupId, maxMarks, deadline, attachmentUrl } = req.body;
 
         // Validate teacher role
         if (req.user?.role?.toLowerCase() !== 'teacher') {
@@ -15,12 +16,21 @@ export const createAssignment = async (req: Request, res: Response): Promise<voi
             return;
         }
 
+        const normalizedGroupId = typeof groupId === 'string' ? groupId.trim().toUpperCase() : '';
+        if (!normalizedGroupId) {
+            res.status(400).json({ success: false, message: 'groupId is required' });
+            return;
+        }
+
         const assignment = await Assignment.create({
             title,
             description,
             teacher: req.user._id,
+            groupId: normalizedGroupId,
             maxMarks,
-            deadline: new Date(deadline)
+            deadline: new Date(deadline),
+            attachmentUrl: attachmentUrl?.trim() || null,
+            attachmentName: null
         });
 
         res.status(201).json({
@@ -39,15 +49,47 @@ export const createAssignment = async (req: Request, res: Response): Promise<voi
 export const getAllAssignments = async (req: Request, res: Response): Promise<void> => {
     try {
         let assignments;
+        const requestedGroupId = typeof req.query.groupId === 'string'
+            ? req.query.groupId.trim().toUpperCase()
+            : '';
 
         if (req.user?.role?.toLowerCase() === 'teacher') {
             // Teachers see only their assignments
-            assignments = await Assignment.find({ teacher: req.user._id })
+            const teacherFilter: { teacher: unknown; groupId?: string } = { teacher: req.user._id };
+            if (requestedGroupId) {
+                teacherFilter.groupId = requestedGroupId;
+            }
+
+            assignments = await Assignment.find(teacherFilter)
                 .populate('teacher', 'name email')
                 .sort({ createdAt: -1 });
         } else {
-            // Students see all active assignments
-            assignments = await Assignment.find({ status: 'active' })
+            // Students see active assignments only for groups they have joined.
+            const memberships = await AssignmentGroupMembership.find({ student: req.user?._id })
+                .select('groupId -_id')
+                .lean();
+
+            const joinedGroupIds = memberships.map((membership) => membership.groupId);
+
+            if (joinedGroupIds.length === 0) {
+                res.status(200).json({
+                    success: true,
+                    data: []
+                });
+                return;
+            }
+
+            if (requestedGroupId && !joinedGroupIds.includes(requestedGroupId)) {
+                res.status(200).json({
+                    success: true,
+                    data: []
+                });
+                return;
+            }
+
+            const groupFilter = requestedGroupId || { $in: joinedGroupIds };
+
+            assignments = await Assignment.find({ status: 'active', groupId: groupFilter })
                 .populate('teacher', 'name email')
                 .sort({ deadline: 1 });
         }
@@ -103,13 +145,18 @@ export const updateAssignment = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        const { title, description, maxMarks, deadline, status } = req.body;
+        const { title, description, groupId, maxMarks, deadline, status, attachmentUrl } = req.body;
 
         if (title) assignment.title = title;
         if (description) assignment.description = description;
+        if (groupId) assignment.groupId = groupId.toString().trim().toUpperCase();
         if (maxMarks) assignment.maxMarks = maxMarks;
         if (deadline) assignment.deadline = new Date(deadline);
         if (status) assignment.status = status;
+        if (attachmentUrl !== undefined) {
+            assignment.attachmentUrl = attachmentUrl?.trim() || null;
+            assignment.attachmentName = null;
+        }
 
         await assignment.save();
 

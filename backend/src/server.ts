@@ -10,8 +10,10 @@ import sessionRoutes from './routes/session';
 import questionRoutes from './routes/question';
 import pollRoutes from './routes/poll';
 import assignmentRoutes from './routes/assignment';
+import assignmentGroupRoutes from './routes/assignmentGroup';
 import submissionRoutes from './routes/submission';
 import guestRoutes from './routes/guest';
+import dashboardRoutes from './routes/dashboard';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -37,8 +39,10 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/assignment-groups', assignmentGroupRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/guest', guestRoutes); // Public routes for guest join
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check route
 app.get('/api/health', (req: Request, res: Response) => {
