@@ -1,10 +1,10 @@
-import { Request } from 'express';
-import { IUser } from '../models/User';
+import { IUser } from "../models/User";
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: IUser;
-        }
-    }
+// Extend Express Request so middleware/controllers can safely use req.user.
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: IUser;
+  }
 }
+
+export {};

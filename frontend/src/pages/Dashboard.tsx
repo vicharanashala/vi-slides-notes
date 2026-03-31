@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/');
     };
 
     const handleCreateSession = async (e: React.FormEvent) => {
