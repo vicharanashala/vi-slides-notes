@@ -72,3 +72,130 @@ export async function meRequest(token: string): Promise<AuthUser> {
 export function dashboardRequest(role: UserRole, token: string): Promise<DashboardResponse> {
     return apiRequest<DashboardResponse>(`/dashboard/${role}`, { token });
 }
+
+export interface AssignmentItem {
+    _id: string;
+    title: string;
+    description: string;
+    groupId: string;
+    maxMarks: number;
+    deadline: string;
+    status: "active" | "closed";
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+    createdAt: string;
+}
+
+export function getAssignmentsRequest(token: string, groupId?: string): Promise<{ success: boolean; data: AssignmentItem[] }> {
+    const normalizedGroupId = groupId?.trim().toUpperCase();
+    const query = normalizedGroupId ? `?groupId=${encodeURIComponent(normalizedGroupId)}` : "";
+    return apiRequest<{ success: boolean; data: AssignmentItem[] }>(`/assignments${query}`, { token });
+}
+
+export function createAssignmentRequest(input: {
+    title: string;
+    description: string;
+    groupId: string;
+    maxMarks: number;
+    deadline: string;
+    attachmentUrl?: string;
+}, token: string): Promise<{ success: boolean; data: AssignmentItem }> {
+    return apiRequest<{ success: boolean; data: AssignmentItem }>("/assignments", {
+        method: "POST",
+        body: JSON.stringify(input),
+        token
+    });
+}
+
+export interface AssignmentGroupItem {
+    groupId: string;
+    joinedAt: string;
+}
+
+export interface SubmissionItem {
+    _id: string;
+    assignment: string;
+    student: string;
+    submissionText: string;
+    pdfUrl?: string | null;
+    status: "pending" | "submitted" | "graded";
+    isLate: boolean;
+    submittedAt: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TeacherSubmissionItem {
+    _id: string;
+    assignment: {
+        _id: string;
+        title: string;
+        groupId: string;
+        maxMarks: number;
+        deadline: string;
+    };
+    student: {
+        _id: string;
+        name: string;
+        email: string;
+    };
+    submissionText: string;
+    pdfUrl?: string | null;
+    status: "pending" | "submitted" | "graded";
+    isLate: boolean;
+    marksObtained?: number | null;
+    feedback?: string | null;
+    submittedAt: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export function joinAssignmentGroupRequest(
+    groupId: string,
+    token: string
+): Promise<{ success: boolean; message?: string; data: AssignmentGroupItem }> {
+    return apiRequest<{ success: boolean; message?: string; data: AssignmentGroupItem }>("/assignment-groups/join", {
+        method: "POST",
+        body: JSON.stringify({ groupId }),
+        token
+    });
+}
+
+export function getMyAssignmentGroupsRequest(
+    token: string
+): Promise<{ success: boolean; data: AssignmentGroupItem[] }> {
+    return apiRequest<{ success: boolean; data: AssignmentGroupItem[] }>("/assignment-groups/my", { token });
+}
+
+export function submitAssignmentRequest(input: {
+    assignmentId: string;
+    submissionText: string;
+    pdfUrl?: string;
+}, token: string): Promise<{ success: boolean; data: SubmissionItem }> {
+    return apiRequest<{ success: boolean; data: SubmissionItem }>("/submissions", {
+        method: "POST",
+        body: JSON.stringify(input),
+        token
+    });
+}
+
+export function getTeacherRecentSubmissionsRequest(
+    token: string,
+    limit = 10
+): Promise<{ success: boolean; data: TeacherSubmissionItem[] }> {
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 50) : 10;
+    return apiRequest<{ success: boolean; data: TeacherSubmissionItem[] }>(
+        `/submissions/teacher/recent?limit=${safeLimit}`,
+        { token }
+    );
+}
+
+export function getSubmissionsByAssignmentRequest(
+    assignmentId: string,
+    token: string
+): Promise<{ success: boolean; data: TeacherSubmissionItem[] }> {
+    return apiRequest<{ success: boolean; data: TeacherSubmissionItem[] }>(
+        `/submissions/assignment/${assignmentId}`,
+        { token }
+    );
+}

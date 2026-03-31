@@ -70,6 +70,20 @@
   padding: 12px 16px;
 }
 
+.error-text {
+  margin-top: 10px;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.success-text {
+  margin-top: 10px;
+  color: #047857;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 /* Group Section */
 .student-group-section {
   margin-top: var(--spacing-xl);

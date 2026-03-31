@@ -1,15 +1,55 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import { submitAssignmentRequest, type AssignmentItem } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 import "./Student.css";
 
 const AssignmentDetail: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const data = location.state;
+  const { token } = useAuth();
+  const data = location.state as AssignmentItem | undefined;
 
   const [text, setText] = useState("");
   const [pdf, setPdf] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const handleSubmit = async () => {
+    if (!data?._id || !token) {
+      setError("Unable to submit right now. Please sign in again.");
+      return;
+    }
+
+    if (!text.trim()) {
+      setError("Submission text is required");
+      setSuccessMessage("");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      await submitAssignmentRequest(
+        {
+          assignmentId: data._id,
+          submissionText: text.trim(),
+          pdfUrl: pdf.trim() || undefined,
+        },
+        token
+      );
+
+      setSuccessMessage("Assignment submitted successfully");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit assignment");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!data) {
     return <p style={{ padding: "20px" }}>No assignment data</p>;
@@ -34,13 +74,13 @@ const AssignmentDetail: React.FC = () => {
 
           {/* TOP DETAILS */}
           <div className="student-assignment-detail-header">
-            <h1>{data.name}</h1>
-            <p>{data.desc}</p>
+            <h1>{data.title}</h1>
+            <p>{data.description}</p>
 
             <div className="student-assignment-meta">
-              <span>Max Marks: <b>{data.marks}</b></span>
-              <span>Deadline: <b>31/03/2026, 9:00 PM</b></span>
-              <span>Teacher: <b>Viany Kumar Dasari</b></span>
+              <span>Max Marks: <b>{data.maxMarks}</b></span>
+              <span>Deadline: <b>{new Date(data.deadline).toLocaleString()}</b></span>
+              <span>Group ID: <b>{data.groupId}</b></span>
             </div>
           </div>
 
@@ -67,8 +107,15 @@ const AssignmentDetail: React.FC = () => {
               Upload your PDF to a cloud service (Google Drive, Dropbox) and paste the link here
             </p>
 
-            <button className="vi-btn vi-btn-primary student-submit-btn">
-              Submit Assignment
+            {error && <p className="error-text">{error}</p>}
+            {successMessage && <p className="success-text">{successMessage}</p>}
+
+            <button
+              className="vi-btn vi-btn-primary student-submit-btn"
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting..." : "Submit Assignment"}
             </button>
           </div>
 

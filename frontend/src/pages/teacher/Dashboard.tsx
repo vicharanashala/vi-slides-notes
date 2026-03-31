@@ -12,7 +12,10 @@ import assignmentIcon from '../../assets/assignment.png'
 import groupsIcon from '../../assets/groups.png'
 import joinIcon from '../../assets/join.png'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://localhost:5001/api' : '/api')
 
 interface Session {
   id: string
@@ -49,9 +52,9 @@ function Dashboard() {
         headers['Authorization'] = `Bearer ${token}`
       }
 
-      const response = await fetch(`${API_BASE_URL}/session`, { headers })
+      const response = await fetch(`${API_BASE_URL}/sessions`, { headers })
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         setSessions(data.sessions)
       } else {
@@ -66,9 +69,18 @@ function Dashboard() {
   }, [token])
 
   useEffect(() => {
-    if (token) {
-      fetchSessions()
+    if (!token) return
+
+    fetchSessions()
+    fetchDashboardMetrics()
+
+    const intervalId = window.setInterval(() => {
       fetchDashboardMetrics()
+      fetchSessions()
+    }, 15000)
+
+    return () => {
+      window.clearInterval(intervalId)
     }
   }, [token, fetchSessions, fetchDashboardMetrics])
 
@@ -77,7 +89,8 @@ function Dashboard() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const sessionsConducted = dashboardData?.metrics?.sessionsConducted ?? sessions.length
+  const fallbackConductedCount = sessions.filter((session) => session.status === 'ended').length
+  const sessionsConducted = dashboardData?.metrics?.sessionsConducted ?? fallbackConductedCount
   const totalAssignments = dashboardData?.metrics?.totalAssignments ?? 0
   const totalStudents = dashboardData?.metrics?.totalStudents ?? sessions.reduce((sum, s) => sum + s.studentsJoined, 0)
   const recentSessions = sessions.slice(0, 5)
@@ -85,11 +98,11 @@ function Dashboard() {
   return (
     <div className="dashboard-page">
       <Navbar variant="teacher" />
-      
+
       <div className="dashboard-content">
-        <WelcomeCard 
-          name={user?.name || 'Teacher'} 
-          subtitle={dashboardData?.message ?? 'Manage your sessions and engage with students!'} 
+        <WelcomeCard
+          name={user?.name || 'Teacher'}
+          subtitle={dashboardData?.message ?? 'Manage your sessions and engage with students!'}
         />
 
         {/* Stats Grid */}
@@ -183,6 +196,7 @@ function Dashboard() {
             )}
           </div>
         </div>
+
       </div>
     </div>
   )
