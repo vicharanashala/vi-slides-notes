@@ -15,6 +15,9 @@ import guestRoutes from './routes/guest';
 // Load environment variables
 dotenv.config();
 
+console.log("SMTP_USER:", process.env.SMTP_USER);
+console.log("SMTP_PASS:", process.env.SMTP_PASS ? '***' : undefined);
+
 // Initialize express app
 const app: Application = express();
 const server = http.createServer(app);

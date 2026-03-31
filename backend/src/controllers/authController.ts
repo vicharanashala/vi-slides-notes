@@ -99,9 +99,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         const { email, password } = req.body;
 
+        console.log('Login attempt for email:', email);
+
         // Check if user exists (include password field)
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
+            console.log('User not found for email:', email);
             res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
@@ -109,15 +112,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        console.log('User found:', user.name, user.role);
+
         // Check if password matches
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+            console.log('Password mismatch for user:', user.name);
             res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
             });
             return;
         }
+
+        console.log('Login successful for:', user.name);
 
         // Generate token
         const token = generateToken(user._id.toString());

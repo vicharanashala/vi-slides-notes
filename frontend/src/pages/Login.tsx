@@ -1,181 +1,226 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
-import { authService } from '../services/authService';
-import './Auth.css';
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "../services/authService";
+import "./Auth.css";
+
+// Note: Google OAuth requires redirect URIs to be proper domains (ending with .com, etc.).
+// IP addresses like 192.168.0.103 are not allowed by Google.
+// To fix:
+// 1. Access the app from http://localhost:5173 instead of the IP address
+// 2. Or use ngrok to create a tunnel: ngrok http 5173, then add the ngrok URL to Google Cloud Console
+// 3. Ensure Google Cloud Console has the correct redirect URI configured
+
+// Get previous route (from email link)
 
 const Login: React.FC = () => {
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
-    const { login } = useAuth();
-    // Actually AuthContext login takes LoginData {email, password}. Google login returns token/user directly.
-    // I should probably manually handle the state update here or add a googleLogin method to context.
-    // For now, let's just handle it here by setting session and reloading/updating context.
-    // Wait, AuthContext sets state on login. I should probably add googleLogin to context or just update user manually.
-    // Let's use the 'login' from context if possible, but it expects email/pass.
-    // Better to update AuthContext to force set user.
-    // Let's check AuthContext again. It has setUser/updateUser.
+  const location = useLocation(); // ✅ FIXED
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const { login } = useAuth();
+  // Actually AuthContext login takes LoginData {email, password}. Google login returns token/user directly.
+  // I should probably manually handle the state update here or add a googleLogin method to context.
+  // For now, let's just handle it here by setting session and reloading/updating context.
+  // Wait, AuthContext sets state on login. I should probably add googleLogin to context or just update user manually.
+  // Let's use the 'login' from context if possible, but it expects email/pass.
+  // Better to update AuthContext to force set user.
+  // Let's check AuthContext again. It has setUser/updateUser.
 
-    // Correction: AuthContext has `login` function which does the API call. 
-    // I will manually call authService.googleLogin, then update context.
+  // Correction: AuthContext has `login` function which does the API call.
+  // I will manually call authService.googleLogin, then update context.
+  const from = location.state?.from?.pathname || "/dashboard";
+  console.log("FROM PATH:", from);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const navigate = useNavigate();
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+    try {
+      await login(formData);
+      window.location.href = from;
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Login failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        try {
-            await login(formData);
-            navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      const res = await authService.googleLogin(credentialResponse.credential);
+      if (res.success) {
+        sessionStorage.setItem("token", res.token);
+        sessionStorage.setItem("user", JSON.stringify(res.user));
+        window.location.href = from;
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Google Login failed");
+    }
+  };
 
-    const handleGoogleSuccess = async (credentialResponse: any) => {
-        try {
-            const res = await authService.googleLogin(credentialResponse.credential);
-            if (res.success) {
-                // Manually update session storage and context since we bypassed context.login
-                sessionStorage.setItem('token', res.token);
-                sessionStorage.setItem('user', JSON.stringify(res.user));
-                window.location.href = '/dashboard'; // Hard reload to ensure context picks up or use proper context method
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Google Login failed');
-        }
-    };
+  return (
+    <div className="auth-container">
+      <div className="auth-background">
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
+      </div>
 
-    return (
-        <div className="auth-container">
-            <div className="auth-background">
-                <div className="gradient-orb orb-1"></div>
-                <div className="gradient-orb orb-2"></div>
-                <div className="gradient-orb orb-3"></div>
+      <div className="auth-content fade-in">
+        <div className="auth-card glass-card">
+          <div className="auth-header">
+            <h1 className="auth-title">Welcome Back</h1>
+            <p className="auth-subtitle">Sign in to continue to Vi-SlideS</p>
+          </div>
+
+          {error && <div className="alert alert-error slide-in">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                className="form-input"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={onChange}
+                required
+              />
             </div>
 
-            <div className="auth-content fade-in">
-                <div className="auth-card glass-card">
-                    <div className="auth-header">
-                        <h1 className="auth-title">Welcome Back</h1>
-                        <p className="auth-subtitle">Sign in to continue to Vi-SlideS</p>
-                    </div>
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  style={{ paddingRight: "2.5rem" }}
+                  value={formData.password}
+                  onChange={onChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-primary)",
+                    cursor: "pointer",
+                    fontSize: "1.2rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 10,
+                  }}
+                >
+                  {showPassword ? "👁️" : "🙈"}
+                </button>
+              </div>
+            </div>
 
-                    {error && (
-                        <div className="alert alert-error slide-in">
-                            {error}
-                        </div>
-                    )}
+            <button
+              type="submit"
+              className="btn btn-primary btn-block"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  <span style={{ marginLeft: "0.5rem" }}>Signing in...</span>
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
 
-                    <form onSubmit={handleSubmit} className="auth-form">
-                        <div className="form-group">
-                            <label htmlFor="email" className="form-label">Email Address</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                className="form-input"
-                                placeholder="you@example.com"
-                                value={formData.email}
-                                onChange={onChange}
-                                required
-                            />
-                        </div>
+          <div
+            style={{
+              margin: "1.5rem 0",
+              textAlign: "center",
+              position: "relative",
+            }}
+          >
+            <span
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                padding: "0 10px",
+                color: "#ccc",
+                position: "relative",
+                zIndex: 1,
+                borderRadius: "4px",
+              }}
+            >
+              OR
+            </span>
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: 0,
+                right: 0,
+                height: "1px",
+                background: "rgba(255, 255, 255, 0.1)",
+                zIndex: 0,
+              }}
+            ></div>
+          </div>
 
-                        <div className="form-group">
-                            <label htmlFor="password" className="form-label">Password</label>
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    id="password"
-                                    name="password"
-                                    className="form-input"
-                                    placeholder="••••••••"
-                                    style={{ paddingRight: '2.5rem' }}
-                                    value={formData.password}
-                                    onChange={onChange}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '10px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--color-primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '1.2rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 10
-                                    }}
-                                >
-                                    {showPassword ? '👁️' : '🙈'}
-                                </button>
-                            </div>
-                        </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google Login Failed")}
+              theme="filled_black"
+              shape="pill"
+              width="250"
+              ux_mode="popup"
+            />
+          </div>
 
-                        <button
-                            type="submit"
-                            className="btn btn-primary btn-block"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    <span style={{ marginLeft: '0.5rem' }}>Signing in...</span>
-                                </>
-                            ) : (
-                                'Sign In'
-                            )}
-                        </button>
-                    </form>
-
-                    <div style={{ margin: '1.5rem 0', textAlign: 'center', position: 'relative' }}>
-                        <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0 10px', color: '#ccc', position: 'relative', zIndex: 1, borderRadius: '4px' }}>OR</span>
-                        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(255, 255, 255, 0.1)', zIndex: 0 }}></div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                        <GoogleLogin
-                            onSuccess={handleGoogleSuccess}
-                            onError={() => setError('Google Login Failed')}
-                            theme="filled_black"
-                            shape="pill"
-                            width="250"
-                        />
-                    </div>
-
-                    <div className="auth-footer">
-                        <p>
-                            Don't have an account?{' '}
-                            <Link to="/register" className="auth-link">
-                                Sign Up
-                            </Link>
-                        </p>
-                    </div>
-                </div >
-            </div >
-        </div >
-    );
+          <div className="auth-footer">
+            <p>
+              Don't have an account?{" "}
+              <Link to="/register" className="auth-link">
+                Sign Up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Login;
