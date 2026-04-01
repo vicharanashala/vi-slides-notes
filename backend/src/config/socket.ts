@@ -123,6 +123,10 @@ export const initSocket = (server: HttpServer) => {
             });
         });
 
+        socket.on('new_question', ({ sessionCode, question }) => {
+    io.to(sessionCode).emit('receive_question', question);
+});
+
         // Private Messaging
         socket.on('send_private_msg', ({ recipientId, message, sender }) => {
             // Find recipient's socket(s)

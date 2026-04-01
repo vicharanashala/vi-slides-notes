@@ -298,6 +298,12 @@ class SocketService {
         }
     }
 
+    onReceiveQuestion(callback: (data: any) => void) {
+    if (this.socket) {
+        this.socket.on('receive_question', callback);
+    }
+}
+
     onUpdateQuestion(callback: (question: any) => void) {
         if (this.socket) {
             this.socket.on('update_question', callback);
