@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
-import { authService } from '../services/authService';
-import './Auth.css';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "../services/authService";
+import "./Auth.css";
 
 const Login: React.FC = () => {
     const [formData, setFormData] = useState({
-        email: '',
-        password: ''
+        email: "",
+        password: "",
     });
     const { login } = useAuth();
     // Actually AuthContext login takes LoginData {email, password}. Google login returns token/user directly.
@@ -19,27 +19,31 @@ const Login: React.FC = () => {
     // Better to update AuthContext to force set user.
     // Let's check AuthContext again. It has setUser/updateUser.
 
-    // Correction: AuthContext has `login` function which does the API call. 
+    // Correction: AuthContext has `login` function which does the API call.
     // I will manually call authService.googleLogin, then update context.
 
     const navigate = useNavigate();
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    const location = useLocation();
+
+    const from = location.state?.from?.pathname || "/dashboard";
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        setError("");
         setLoading(true);
 
         try {
             await login(formData);
-            navigate('/dashboard');
+            navigate(from, { replace: true });
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed. Please try again.');
+            setError(err.response?.data?.message || "Login failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -50,12 +54,12 @@ const Login: React.FC = () => {
             const res = await authService.googleLogin(credentialResponse.credential);
             if (res.success) {
                 // Manually update session storage and context since we bypassed context.login
-                sessionStorage.setItem('token', res.token);
-                sessionStorage.setItem('user', JSON.stringify(res.user));
-                window.location.href = '/dashboard'; // Hard reload to ensure context picks up or use proper context method
+                sessionStorage.setItem("token", res.token);
+                sessionStorage.setItem("user", JSON.stringify(res.user));
+                window.location.href = from; // Hard reload to ensure context picks up or use proper context method
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Google Login failed');
+            setError(err.response?.data?.message || "Google Login failed");
         }
     };
 
@@ -74,15 +78,13 @@ const Login: React.FC = () => {
                         <p className="auth-subtitle">Sign in to continue to Vi-SlideS</p>
                     </div>
 
-                    {error && (
-                        <div className="alert alert-error slide-in">
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="alert alert-error slide-in">{error}</div>}
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
-                            <label htmlFor="email" className="form-label">Email Address</label>
+                            <label htmlFor="email" className="form-label">
+                                Email Address
+                            </label>
                             <input
                                 type="email"
                                 id="email"
@@ -96,15 +98,17 @@ const Login: React.FC = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="password" className="form-label">Password</label>
-                            <div style={{ position: 'relative' }}>
+                            <label htmlFor="password" className="form-label">
+                                Password
+                            </label>
+                            <div style={{ position: "relative" }}>
                                 <input
-                                    type={showPassword ? 'text' : 'password'}
+                                    type={showPassword ? "text" : "password"}
                                     id="password"
                                     name="password"
                                     className="form-input"
                                     placeholder="••••••••"
-                                    style={{ paddingRight: '2.5rem' }}
+                                    style={{ paddingRight: "2.5rem" }}
                                     value={formData.password}
                                     onChange={onChange}
                                     required
@@ -113,22 +117,22 @@ const Login: React.FC = () => {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     style={{
-                                        position: 'absolute',
-                                        right: '10px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--color-primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '1.2rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 10
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        background: "none",
+                                        border: "none",
+                                        color: "var(--color-primary)",
+                                        cursor: "pointer",
+                                        fontSize: "1.2rem",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        zIndex: 10,
                                     }}
                                 >
-                                    {showPassword ? '👁️' : '🙈'}
+                                    {showPassword ? "👁️" : "🙈"}
                                 </button>
                             </div>
                         </div>
@@ -141,23 +145,50 @@ const Login: React.FC = () => {
                             {loading ? (
                                 <>
                                     <span className="spinner"></span>
-                                    <span style={{ marginLeft: '0.5rem' }}>Signing in...</span>
+                                    <span style={{ marginLeft: "0.5rem" }}>Signing in...</span>
                                 </>
                             ) : (
-                                'Sign In'
+                                "Sign In"
                             )}
                         </button>
                     </form>
 
-                    <div style={{ margin: '1.5rem 0', textAlign: 'center', position: 'relative' }}>
-                        <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0 10px', color: '#ccc', position: 'relative', zIndex: 1, borderRadius: '4px' }}>OR</span>
-                        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(255, 255, 255, 0.1)', zIndex: 0 }}></div>
+                    <div style={{ margin: "1.5rem 0", textAlign: "center", position: "relative" }}>
+                        <span
+                            style={{
+                                background: "rgba(255, 255, 255, 0.05)",
+                                padding: "0 10px",
+                                color: "#ccc",
+                                position: "relative",
+                                zIndex: 1,
+                                borderRadius: "4px",
+                            }}
+                        >
+                            OR
+                        </span>
+                        <div
+                            style={{
+                                position: "absolute",
+                                top: "50%",
+                                left: 0,
+                                right: 0,
+                                height: "1px",
+                                background: "rgba(255, 255, 255, 0.1)",
+                                zIndex: 0,
+                            }}
+                        ></div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            marginBottom: "1.5rem",
+                        }}
+                    >
                         <GoogleLogin
                             onSuccess={handleGoogleSuccess}
-                            onError={() => setError('Google Login Failed')}
+                            onError={() => setError("Google Login Failed")}
                             theme="filled_black"
                             shape="pill"
                             width="250"
@@ -166,15 +197,15 @@ const Login: React.FC = () => {
 
                     <div className="auth-footer">
                         <p>
-                            Don't have an account?{' '}
+                            Don't have an account?{" "}
                             <Link to="/register" className="auth-link">
                                 Sign Up
                             </Link>
                         </p>
                     </div>
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+        </div>
     );
 };
 

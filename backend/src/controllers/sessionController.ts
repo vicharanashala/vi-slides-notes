@@ -1,26 +1,26 @@
-import { Request, Response } from 'express';
-import Session from '../models/Session';
-import Question from '../models/Question';
-import { emitToSession } from '../config/socket';
-import { generateMoodSummary } from '../services/aiService';
-import QRCode from 'qrcode';
-import os from 'os';
+import { Request, Response } from "express";
+import Session from "../models/Session";
+import Question from "../models/Question";
+import { emitToSession } from "../config/socket";
+import { generateMoodSummary } from "../services/aiService";
+import QRCode from "qrcode";
+import os from "os";
 
 const getLocalUrl = (): string => {
     // 1. High priority: Explicit PUBLIC_URL (ngrok, tunnel, domain)
     if (process.env.PUBLIC_URL) {
-        return process.env.PUBLIC_URL.replace(/\/$/, ''); // Remove trailing slash
+        return process.env.PUBLIC_URL.replace(/\/$/, ""); // Remove trailing slash
     }
 
     // 2. Medium priority: FRONTEND_URL if it's not localhost
     const envUrl = process.env.FRONTEND_URL;
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-        return envUrl.replace(/\/$/, '');
+    if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+        return envUrl.replace(/\/$/, "");
     }
 
     // 3. Fallback: Detect Local Network IP (for same-WiFi usage)
     const interfaces = os.networkInterfaces();
-    let detectedIp = '';
+    let detectedIp = "";
 
     for (const name of Object.keys(interfaces)) {
         const ifaceList = interfaces[name];
@@ -28,10 +28,10 @@ const getLocalUrl = (): string => {
 
         for (const iface of ifaceList) {
             // Skip internal (loopback) and non-IPv4 addresses
-            if (iface.internal || iface.family !== 'IPv4') continue;
+            if (iface.internal || iface.family !== "IPv4") continue;
 
             // Prioritize common private networks
-            if (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')) {
+            if (iface.address.startsWith("192.168.") || iface.address.startsWith("10.")) {
                 return `http://${iface.address}:5173`;
             }
             detectedIp = iface.address;
@@ -43,14 +43,14 @@ const getLocalUrl = (): string => {
     }
 
     // 4. Ultimate Fallback: Default Localhost
-    return envUrl || 'http://localhost:5173';
+    return envUrl || "http://localhost:5173";
 };
 
 // Helper to generate a unique 6-character code
 const generateSessionCode = (length: number = 6): string => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return result;
@@ -78,7 +78,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
             description,
             code,
             teacher: req.user?._id,
-            status: 'active'
+            status: "active",
         });
 
         const baseUrl = getLocalUrl();
@@ -88,27 +88,27 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
                 width: 300,
                 margin: 2,
                 color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
-                }
+                    dark: "#6366f1",
+                    light: "#ffffff",
+                },
             });
             session.qrCodeDataUrl = qrCodeDataUrl;
             session.joinUrl = joinUrl;
             await session.save();
         } catch (qrError) {
-            console.error('QR code generation error:', qrError);
+            console.error("QR code generation error:", qrError);
             // Continue even if QR generation fails
         }
 
         res.status(201).json({
             success: true,
-            data: session
+            data: session,
         });
     } catch (error) {
-        console.error('Create session error:', error);
+        console.error("Create session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error during session creation'
+            message: "Server error during session creation",
         });
     }
 };
@@ -121,16 +121,16 @@ export const joinSession = async (req: Request, res: Response): Promise<void> =>
         const { code } = req.body;
 
         if (!code) {
-            res.status(400).json({ success: false, message: 'Please provide a session code' });
+            res.status(400).json({ success: false, message: "Please provide a session code" });
             return;
         }
 
-        const session = await Session.findOne({ code: code.toUpperCase(), status: 'active' });
+        const session = await Session.findOne({ code: code.toUpperCase(), status: "active" });
 
         if (!session) {
             res.status(404).json({
                 success: false,
-                message: 'Active session not found with this code'
+                message: "Active session not found with this code",
             });
             return;
         }
@@ -144,13 +144,13 @@ export const joinSession = async (req: Request, res: Response): Promise<void> =>
 
         res.status(200).json({
             success: true,
-            data: session
+            data: session,
         });
     } catch (error) {
-        console.error('Join session error:', error);
+        console.error("Join session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error during joining session'
+            message: "Server error during joining session",
         });
     }
 };
@@ -162,13 +162,13 @@ export const getSessionDetails = async (req: Request, res: Response): Promise<vo
     try {
         const { code } = req.params;
         const session = await Session.findOne({ code: code.toUpperCase() })
-            .populate('teacher', 'name email')
-            .populate('students', 'name email');
+            .populate("teacher", "name email")
+            .populate("students", "name email");
 
         if (!session) {
             res.status(404).json({
                 success: false,
-                message: 'Session not found'
+                message: "Session not found",
             });
             return;
         }
@@ -177,34 +177,40 @@ export const getSessionDetails = async (req: Request, res: Response): Promise<vo
             const baseUrl = getLocalUrl();
             // If the current detected base URL is public but the session's joinUrl is local/localhost,
             // refresh it so the QR code matches the current tunnel/domain.
-            if (!baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1') &&
-                (!session.joinUrl || session.joinUrl.includes('localhost') || session.joinUrl.includes('127.0.0.1'))) {
-
-                const joinUrl = session.isQuerySession ? `${baseUrl}/ask/${session.code}` : `${baseUrl}/join/${session.code}`;
+            if (
+                !baseUrl.includes("localhost") &&
+                !baseUrl.includes("127.0.0.1") &&
+                (!session.joinUrl ||
+                    session.joinUrl.includes("localhost") ||
+                    session.joinUrl.includes("127.0.0.1"))
+            ) {
+                const joinUrl = session.isQuerySession
+                    ? `${baseUrl}/ask/${session.code}`
+                    : `${baseUrl}/session/${session.code}`;
                 try {
                     const qrCodeDataUrl = await QRCode.toDataURL(joinUrl, {
                         width: 300,
                         margin: 2,
-                        color: { dark: '#6366f1', light: '#ffffff' }
+                        color: { dark: "#6366f1", light: "#ffffff" },
                     });
                     session.qrCodeDataUrl = qrCodeDataUrl;
                     session.joinUrl = joinUrl;
                     await session.save();
                 } catch (qrError) {
-                    console.error('QR refresh error in getSessionDetails:', qrError);
+                    console.error("QR refresh error in getSessionDetails:", qrError);
                 }
             }
         }
 
         res.status(200).json({
             success: true,
-            data: session
+            data: session,
         });
     } catch (error) {
-        console.error('Get session error:', error);
+        console.error("Get session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error fetching session'
+            message: "Server error fetching session",
         });
     }
 };
@@ -217,22 +223,22 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
         const session = await Session.findById(req.params.id);
 
         if (!session) {
-            res.status(404).json({ success: false, message: 'Session not found' });
+            res.status(404).json({ success: false, message: "Session not found" });
             return;
         }
 
         // Check if user is the teacher of this session
         if (session.teacher.toString() !== req.user?._id.toString()) {
-            res.status(403).json({ success: false, message: 'Unauthorized to end this session' });
+            res.status(403).json({ success: false, message: "Unauthorized to end this session" });
             return;
         }
 
-        session.status = 'ended';
+        session.status = "ended";
         session.endedAt = new Date();
 
         // 1. Fetch all questions for this session to generate summary
         const questions = await Question.find({ session: session._id });
-        const questionTexts = questions.map(q => q.content);
+        const questionTexts = questions.map((q) => q.content);
 
         // 2. Generate Mood Summary via AI (Gemini)
         // Note: This is an async call but we wait for it to store it in the session record
@@ -241,7 +247,7 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
         await session.save();
 
         // Notify all participants
-        emitToSession(session.code, 'session_status_update', { status: 'ended' });
+        emitToSession(session.code, "session_status_update", { status: "ended" });
 
         res.status(200).json({
             success: true,
@@ -250,16 +256,18 @@ export const endSession = async (req: Request, res: Response): Promise<void> => 
                 title: session.title,
                 code: session.code,
                 questionCount: questions.length,
-                duration: Math.round((session.endedAt.getTime() - session.createdAt.getTime()) / 60000), // duration in minutes
-                moodSummary: session.moodSummary
+                duration: Math.round(
+                    (session.endedAt.getTime() - session.createdAt.getTime()) / 60000
+                ), // duration in minutes
+                moodSummary: session.moodSummary,
             },
-            message: 'Session ended successfully'
+            message: "Session ended successfully",
         });
     } catch (error) {
-        console.error('End session error:', error);
+        console.error("End session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error ending session'
+            message: "Server error ending session",
         });
     }
 };
@@ -272,34 +280,37 @@ export const pauseSession = async (req: Request, res: Response): Promise<void> =
         const session = await Session.findById(req.params.id);
 
         if (!session) {
-            res.status(404).json({ success: false, message: 'Session not found' });
+            res.status(404).json({ success: false, message: "Session not found" });
             return;
         }
 
         // Check if user is the teacher of this session
         if (session.teacher.toString() !== req.user?._id.toString()) {
-            res.status(403).json({ success: false, message: 'Unauthorized to control this session' });
+            res.status(403).json({
+                success: false,
+                message: "Unauthorized to control this session",
+            });
             return;
         }
 
         // Toggle status
-        const newStatus = session.status === 'paused' ? 'active' : 'paused';
+        const newStatus = session.status === "paused" ? "active" : "paused";
         session.status = newStatus;
         await session.save();
 
         // Notify all participants
-        emitToSession(session.code, 'session_status_update', { status: newStatus });
+        emitToSession(session.code, "session_status_update", { status: newStatus });
 
         res.status(200).json({
             success: true,
             status: newStatus,
-            message: `Session ${newStatus === 'paused' ? 'paused' : 'resumed'} successfully`
+            message: `Session ${newStatus === "paused" ? "paused" : "resumed"} successfully`,
         });
     } catch (error) {
-        console.error('Pause session error:', error);
+        console.error("Pause session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error toggling session pause'
+            message: "Server error toggling session pause",
         });
     }
 };
@@ -313,26 +324,28 @@ export const leaveSession = async (req: Request, res: Response): Promise<void> =
         const session = await Session.findOne({ code: code.toUpperCase() });
 
         if (!session) {
-            res.status(404).json({ success: false, message: 'Session not found' });
+            res.status(404).json({ success: false, message: "Session not found" });
             return;
         }
 
         const userId = req.user?._id;
         if (userId) {
             // Remove user from students array
-            session.students = session.students.filter(id => id.toString() !== userId.toString()) as any;
+            session.students = session.students.filter(
+                (id) => id.toString() !== userId.toString()
+            ) as any;
             await session.save();
         }
 
         res.status(200).json({
             success: true,
-            message: 'Left session successfully'
+            message: "Left session successfully",
         });
     } catch (error) {
-        console.error('Leave session error:', error);
+        console.error("Leave session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error leaving session'
+            message: "Server error leaving session",
         });
     }
 };
@@ -345,21 +358,27 @@ export const getActiveSession = async (req: Request, res: Response): Promise<voi
         const userId = req.user?._id;
         let session;
 
-        if (req.user?.role === 'Teacher') {
-            session = await Session.findOne({ teacher: userId, status: { $in: ['active', 'paused'] } });
+        if (req.user?.role === "Teacher") {
+            session = await Session.findOne({
+                teacher: userId,
+                status: { $in: ["active", "paused"] },
+            });
         } else {
-            session = await Session.findOne({ students: userId, status: { $in: ['active', 'paused'] } });
+            session = await Session.findOne({
+                students: userId,
+                status: { $in: ["active", "paused"] },
+            });
         }
 
         res.status(200).json({
             success: true,
-            data: session || null
+            data: session || null,
         });
     } catch (error) {
-        console.error('Get active session error:', error);
+        console.error("Get active session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error fetching active session'
+            message: "Server error fetching active session",
         });
     }
 };
@@ -373,20 +392,20 @@ export const getStudentSessions = async (req: Request, res: Response): Promise<v
 
         // Find sessions where student is in participants list
         const sessions = await Session.find({
-            students: userId
+            students: userId,
         })
-            .populate('teacher', 'name')
+            .populate("teacher", "name")
             .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
-            data: sessions
+            data: sessions,
         });
     } catch (error) {
-        console.error('Get student sessions error:', error);
+        console.error("Get student sessions error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error fetching student sessions'
+            message: "Server error fetching student sessions",
         });
     }
 };
@@ -403,12 +422,12 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
         const baseUrl = getLocalUrl();
 
         // If session exists but has localhost URL, refresh it
-        if (session && session.joinUrl?.includes('localhost') && !baseUrl.includes('localhost')) {
+        if (session && session.joinUrl?.includes("localhost") && !baseUrl.includes("localhost")) {
             const askUrl = `${baseUrl}/ask/${session.code}`;
             const qrCodeDataUrl = await QRCode.toDataURL(askUrl, {
                 width: 300,
                 margin: 2,
-                color: { dark: '#6366f1', light: '#ffffff' }
+                color: { dark: "#6366f1", light: "#ffffff" },
             });
             session.qrCodeDataUrl = qrCodeDataUrl;
             session.joinUrl = askUrl;
@@ -429,8 +448,8 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
                 title: `${req.user?.name}'s Query Mode`,
                 code,
                 teacher: userId,
-                status: 'active',
-                isQuerySession: true
+                status: "active",
+                isQuerySession: true,
             });
 
             const askUrl = `${baseUrl}/ask/${code}`;
@@ -438,9 +457,9 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
                 width: 300,
                 margin: 2,
                 color: {
-                    dark: '#6366f1',
-                    light: '#ffffff'
-                }
+                    dark: "#6366f1",
+                    light: "#ffffff",
+                },
             });
 
             session.qrCodeDataUrl = qrCodeDataUrl;
@@ -450,13 +469,13 @@ export const getOrCreateQuerySession = async (req: Request, res: Response): Prom
 
         res.status(200).json({
             success: true,
-            data: session
+            data: session,
         });
     } catch (error) {
-        console.error('Get/Create query session error:', error);
+        console.error("Get/Create query session error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error handling query session'
+            message: "Server error handling query session",
         });
     }
 };
@@ -472,7 +491,7 @@ export const updateQueryUrl = async (req: Request, res: Response): Promise<void>
         const session = await Session.findOne({ teacher: userId, isQuerySession: true });
 
         if (!session) {
-            res.status(404).json({ success: false, message: 'Query session not found' });
+            res.status(404).json({ success: false, message: "Query session not found" });
             return;
         }
 
@@ -482,13 +501,13 @@ export const updateQueryUrl = async (req: Request, res: Response): Promise<void>
         res.status(200).json({
             success: true,
             data: session,
-            message: 'Query URL updated successfully'
+            message: "Query URL updated successfully",
         });
     } catch (error) {
-        console.error('Update query URL error:', error);
+        console.error("Update query URL error:", error);
         res.status(500).json({
             success: false,
-            message: 'Server error updating query URL'
+            message: "Server error updating query URL",
         });
     }
 };

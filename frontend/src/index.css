@@ -613,6 +613,18 @@ main {
   transition: flex 300ms ease-in-out;
 }
 
+/* Pulse Animation for Participant Count */
+@keyframes pulse-once {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); color: var(--color-primary-light); }
+  100% { transform: scale(1); }
+}
+
+.pulse-animation {
+  animation: pulse-once 0.5s ease-out;
+  display: inline-block;
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 1280px) {
   .slide-container {
