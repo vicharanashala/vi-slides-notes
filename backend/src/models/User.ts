@@ -1,6 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-
+interface IConnections {
+    github?: string;
+    linkedin?: string;
+}
 export interface IUser extends Document {
     name: string;
     email: string;
@@ -8,6 +11,7 @@ export interface IUser extends Document {
     role: 'Teacher' | 'Student';
     googleId?: string;
     avatar?: string;
+    connections?: IConnections;
     points: number;
     bookmarks: {
         sessionTitle: string;
@@ -53,6 +57,16 @@ const userSchema = new Schema<IUser>({
     },
     avatar: {
         type: String
+    },
+    connections: {
+        github: {
+            type: String,
+            trim: true
+        },
+        linkedin: {
+            type: String,
+            trim: true
+        }
     },
     points: {
         type: Number,

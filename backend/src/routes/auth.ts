@@ -1,6 +1,19 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { register, login, getMe, updateDetails, googleLogin, getLeaderboard } from '../controllers/authController';
+import { 
+    register, 
+    login, 
+    getMe, 
+    updateDetails, 
+    googleLogin, 
+    getLeaderboard,
+    getProfile,
+    changePassword,
+    updateAvatar,
+    deleteAccount,
+    updateConnections
+} from '../controllers/authController';
+
 import { protect } from '../middleware/auth';
 
 const router = express.Router();
@@ -62,6 +75,51 @@ router.put(
     ],
     updateDetails
 );
+
+// @route   GET /api/auth/profile
+// @desc    Get user profile
+// @access  Private
+router.get('/profile', protect, getProfile);
+
+// @route   PUT /api/auth/changepassword
+// @desc    Change user password
+// @access  Private
+router.put(
+    '/changepassword',
+    protect,
+    [
+        body('currentPassword').notEmpty().withMessage('Current password is required'),
+        body('newPassword')
+            .isLength({ min: 6 })
+            .withMessage('New password must be at least 6 characters'),
+        body('confirmPassword').notEmpty().withMessage('Password confirmation is required')
+    ],
+    changePassword
+);
+
+// @route   PUT /api/auth/updateavatar
+// @desc    Update user avatar
+// @access  Private
+router.put(
+    '/updateavatar',
+    protect,
+    [
+        body('avatar').notEmpty().withMessage('Avatar is required')
+    ],
+    updateAvatar
+);
+
+// @route   DELETE /api/auth/deleteaccount
+// @desc    Delete user account
+// @access  Private
+router.delete('/deleteaccount', protect, deleteAccount);
+
+
+// @route   PUT /api/auth/connections
+// @desc    Update user connections
+// @access  Private
+router.put('/connections', protect, updateConnections);
+
 
 export default router;
 
