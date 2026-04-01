@@ -42,6 +42,7 @@ npm install
 ```
 
 Create a `.env` file in the `backend` directory (copy from `.env.example`):
+
 ```env
 PORT=5000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/vi-slides?retryWrites=true&w=majority
@@ -49,9 +50,11 @@ JWT_SECRET=your-super-secret-key
 JWT_EXPIRE=7d
 NODE_ENV=development
 ```
-*Note: You must replace `MONGODB_URI` with your actual MongoDB Atlas connection string.*
+
+_Note: You must replace `MONGODB_URI` with your actual MongoDB Atlas connection string._
 
 Start the backend server:
+
 ```bash
 npm run dev
 ```
@@ -59,17 +62,20 @@ npm run dev
 ### 3. Frontend Setup
 
 Open a new terminal:
+
 ```bash
 cd frontend
 npm install
 ```
 
 Create a `.env` file in the `frontend` directory:
+
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
 Start the frontend development server:
+
 ```bash
 npm run dev
 ```
