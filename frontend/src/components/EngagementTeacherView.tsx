@@ -16,6 +16,7 @@ interface HandRaiseUpdate {
 const EngagementTeacherView: React.FC = () => {
     const [understandingMap, setUnderstandingMap] = useState<Map<string, UnderstandingUpdate>>(new Map());
     const [handRaisedMap, setHandRaisedMap] = useState<Map<string, HandRaiseUpdate>>(new Map());
+    const [questions, setQuestions] = useState<any[]>([]);
 
     useEffect(() => {
         socketService.onTeacherUnderstandingUpdate((data) => {
@@ -37,6 +38,11 @@ const EngagementTeacherView: React.FC = () => {
                 return newMap;
             });
         });
+
+        // ✅ LISTEN FOR NEW QUESTIONS
+socketService.onReceiveQuestion((question) => {
+    setQuestions(prev => [question, ...prev]);
+});
 
         // Cleanup on unmount handled by SessionView typically, but good to be explicit
         return () => {
@@ -99,6 +105,30 @@ const EngagementTeacherView: React.FC = () => {
                     {handRaisedMap.size === 0 && <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', margin: 0 }}>No hands raised</p>}
                 </div>
             </div>
+        <div style={{ marginTop: '1rem' }}>
+            <h4 style={{ marginBottom: '0.5rem' }}>Live Questions</h4>
+
+            {questions.length === 0 ? (
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    No questions yet
+                </p>
+            ) : (
+                questions.map((q, i) => (
+                    <div
+                        key={i}
+                        style={{
+                            padding: '0.5rem',
+                            marginBottom: '0.5rem',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem'
+                        }}
+                    >
+                        {q.content}
+                    </div>
+                ))
+            )}
+        </div>
         </div>
     );
 };

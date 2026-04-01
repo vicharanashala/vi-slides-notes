@@ -9,10 +9,12 @@ interface QuestionInputProps {
 
 const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus, onQuestionSubmitted }) => {
     const isPaused = sessionStatus === 'paused';
+    const isEnded = sessionStatus === 'ended';
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [isListening, setIsListening] = useState(false);
+    const [isAnonymous, setIsAnonymous] = useState(false);
 
     const handleVoiceInput = () => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -70,11 +72,13 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
             const response = await questionService.createQuestion({
                 content: content.trim(),
                 sessionId,
+                isAnonymous,
                 isDirectToTeacher: true // Always send to teacher first
             });
 
             if (response.success) {
                 setContent(''); // Clear UI immediately
+                alert("✅ Question submitted successfully");
                 if (onQuestionSubmitted) {
                     onQuestionSubmitted(response.data);
                 }
@@ -110,7 +114,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
                                 handleSubmit(e);
                             }
                         }}
-                        disabled={loading || isPaused}
+                        disabled={loading || isPaused || isEnded}
                     ></textarea>
 
                     {!isPaused && (
@@ -145,12 +149,22 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
 
                 {error && <span className="form-error mb-2">{error}</span>}
 
+                <label style={{ fontSize: '0.8rem', marginBottom: '0.5rem', display: 'block' }}>
+  <input
+    type="checkbox"
+    checked={isAnonymous}
+    onChange={() => setIsAnonymous(!isAnonymous)}
+    style={{ marginRight: '5px' }}
+  />
+  Ask anonymously
+</label>
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         type="submit"
                         className="btn btn-primary"
                         style={{ padding: '0.6rem 1.5rem', borderRadius: 'var(--radius-full)' }}
-                        disabled={loading || !content.trim() || isPaused}
+                        disabled={loading || !content.trim() || isPaused || isEnded}
                     >
                         {loading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div> : (isPaused ? 'Paused' : 'Send Question')}
                     </button>

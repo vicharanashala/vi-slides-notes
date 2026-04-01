@@ -104,6 +104,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IQuestion extends Document {
     content: string;
     user?: mongoose.Types.ObjectId; // Optional for guest questions
+    isAnonymous?: boolean; 
     guestName?: string; // For non-authenticated questions
     guestEmail?: string; // For non-authenticated questions
     session: mongoose.Types.ObjectId;
@@ -139,6 +140,10 @@ const questionSchema = new Schema<IQuestion>({
         ref: 'User',
         required: false // Optional for guest questions
     },
+    isAnonymous: {
+    type: Boolean,
+    default: false
+},
     guestName: {
         type: String,
         trim: true,

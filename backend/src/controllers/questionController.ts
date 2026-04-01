@@ -392,7 +392,7 @@ import User from '../models/User';
 // @access  Private
 export const createQuestion = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { content, sessionId, isDirectToTeacher } = req.body;
+        const { content, sessionId, isDirectToTeacher ,isAnonymous} = req.body;
 
         if (!content || !sessionId) {
             res.status(400).json({ success: false, message: 'Content and session ID are required' });
@@ -405,9 +405,19 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             return;
         }
 
+        if (session.status === 'ended') {
+            res.status(400).json({ success: false, message: 'Session ended' });
+            return;
+        }
+        if (session.status === 'paused') {
+            res.status(400).json({ success: false, message: 'Session paused' });
+            return;
+        }
+
         const question = await Question.create({
             content,
-            user: req.user?._id,
+            user: isAnonymous ? null : req.user?._id,
+            isAnonymous: !!isAnonymous,
             session: sessionId,
             isDirectToTeacher: !!isDirectToTeacher,
             analysisStatus: 'not_requested',
@@ -420,6 +430,9 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
 
         // Populate user info for the response and emission
         const populatedQuestion = await Question.findById(question._id).populate('user', 'name');
+
+        // ✅ FIX SOCKET EVENT
+        emitToSession(session.code, 'receive_question', populatedQuestion);
 
         // Emit real-time event with pending refinement status
         emitToSession(session.code, 'new_question', {
