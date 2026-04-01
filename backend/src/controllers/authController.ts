@@ -70,7 +70,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             }
         });
     } catch (error) {
@@ -129,7 +130,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             }
         });
     } catch (error) {
@@ -160,7 +162,8 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
                 id: req.user._id,
                 name: req.user.name,
                 email: req.user.email,
-                role: req.user.role
+                role: req.user.role,
+                avatar: req.user.avatar
             }
         });
     } catch (error) {
@@ -219,7 +222,8 @@ export const updateDetails = async (req: Request, res: Response): Promise<void> 
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             }
         });
     } catch (error) {
@@ -329,6 +333,283 @@ export const getLeaderboard = async (req: Request, res: Response): Promise<void>
         res.status(500).json({
             success: false,
             message: 'Server error fetching leaderboard'
+        });
+    }
+};
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authorized'
+            });
+            return;
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar,
+                points: user.points,
+                createdAt: user.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('GetProfile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+
+// @desc    Change password
+// @route   PUT /api/auth/changepassword
+// @access  Private
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authorized'
+            });
+            return;
+        }
+
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+
+        // Validate inputs
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            res.status(400).json({
+                success: false,
+                message: 'Please provide current password and new password'
+            });
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            res.status(400).json({
+                success: false,
+                message: 'New passwords do not match'
+            });
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters'
+            });
+            return;
+        }
+
+        // Get user with password field
+        const user = await User.findById(req.user.id).select('+password');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        // Check if current password is correct
+        if (!user.password) {
+            res.status(400).json({
+                success: false,
+                message: 'This account does not have a password (Google login only)'
+            });
+            return;
+        }
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+            return;
+        }
+
+        // Update password
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('ChangePassword error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while changing password'
+        });
+    }
+};
+
+// @desc    Update user avatar
+// @route   PUT /api/auth/updateavatar
+// @access  Private
+export const updateAvatar = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authorized'
+            });
+            return;
+        }
+
+        const { avatar } = req.body; // Base64 string or URL
+
+        if (!avatar) {
+            res.status(400).json({
+                success: false,
+                message: 'Avatar is required'
+            });
+            return;
+        }
+
+        // Validate base64 string length (limit to prevent DB bloat)
+        if (avatar.length > 2500000) { // ~2.5MB limit for base64
+            res.status(413).json({
+                success: false,
+                message: 'Avatar file is too large. Please use an image smaller than 1MB'
+            });
+            return;
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { avatar },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Avatar updated successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar
+            }
+        });
+    } catch (error) {
+        console.error('UpdateAvatar error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while updating avatar'
+        });
+    }
+};
+
+// @desc    Delete user account
+// @route   DELETE /api/auth/deleteaccount
+// @access  Private
+export const deleteAccount = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authorized'
+            });
+            return;
+        }
+
+        const user = await User.findByIdAndDelete(req.user.id);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Account deleted successfully'
+        });
+    } catch (error) {
+        console.error('DeleteAccount error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while deleting account'
+        });
+    }
+};
+
+export const updateConnections = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authorized'
+            });
+            return;
+        }
+
+        const { github, linkedin } = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                $set: {
+                    'connections.github': github,
+                    'connections.linkedin': linkedin
+                }
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Connections updated successfully',
+            connections: user.connections
+        });
+
+    } catch (error) {
+        console.error('UpdateConnections error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
         });
     }
 };

@@ -12,6 +12,7 @@ import AssignmentDetails from './pages/AssignmentDetails';
 import GuestJoinForm from './pages/GuestJoinForm';
 import QueryPPTView from './pages/QueryPPTView';
 import QueryAsk from './pages/QueryAsk';
+import Profile from './pages/Profile'
 
 const App: React.FC = () => {
     return (
@@ -68,6 +69,14 @@ const App: React.FC = () => {
                         element={
                             <ProtectedRoute>
                                 <QueryPPTView />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute>
+                                <Profile />
                             </ProtectedRoute>
                         }
                     />
