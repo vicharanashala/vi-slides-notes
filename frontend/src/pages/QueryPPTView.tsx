@@ -41,6 +41,27 @@ const QueryPPTView: React.FC = () => {
                             return [...prev, newQ];
                         });
                     });
+
+                    socketService.onUpdateQuestion((updatedQ: Question) => {
+                        setQuestions(prev => prev.map(q => q._id === updatedQ._id ? updatedQ : q));
+                    });
+
+                    socketService.onQuestionAnalyzed((analyzedQ: Question) => {
+                        setQuestions(prev => prev.map(q => q._id === analyzedQ._id ? analyzedQ : q));
+                    });
+
+                    socketService.onQuestionsRefined((data: any) => {
+                        setQuestions(prev => {
+                            const updated = [...prev];
+                            data.questions.forEach((refinedQ: Question) => {
+                                const index = updated.findIndex(q => q._id === refinedQ._id);
+                                if (index !== -1) {
+                                    updated[index] = refinedQ;
+                                }
+                            });
+                            return updated;
+                        });
+                    });
                 }
             } catch (err) {
                 console.error('Error initializing Query Mode:', err);
@@ -56,6 +77,9 @@ const QueryPPTView: React.FC = () => {
                 socketService.leaveSession(session.code);
             }
             socketService.offNewQuestion();
+            socketService.offUpdateQuestion();
+            socketService.offQuestionAnalyzed();
+            socketService.offQuestionsRefined();
         };
     }, []);
 

@@ -4,6 +4,7 @@ import Question from '../models/Question';
 import GuestParticipant from '../models/GuestParticipant';
 import { emitToSession } from '../config/socket';
 import { queueQuestion } from '../services/questionBatchService';
+import { autoAnalyzeQuestion } from '../services/questionAnalysisService';
 
 // @desc    Guest join session with form submission
 // @route   POST /api/sessions/guest/join
@@ -24,7 +25,7 @@ export const guestJoinSession = async (req: Request, res: Response): Promise<voi
         }
 
         // Find the session
-        const session = await Session.findOne({ code: code.toUpperCase(), status: { $in: ['active', 'paused'] } });
+        const session = await Session.findOne({ code: code.toUpperCase(), status: 'active' });
 
         if (!session) {
             res.status(404).json({
@@ -51,7 +52,7 @@ export const guestJoinSession = async (req: Request, res: Response): Promise<voi
                 guestName: name,
                 guestEmail: email,
                 status: 'active',
-                analysisStatus: 'not_requested',
+                analysisStatus: 'pending',
                 refinementStatus: 'pending',
                 originalContent: question.trim(),
                 upvotes: [],
@@ -71,6 +72,8 @@ export const guestJoinSession = async (req: Request, res: Response): Promise<voi
 
             // Emit the new question to the session
             emitToSession(session.code, 'new_question', createdQuestion);
+
+            void autoAnalyzeQuestion(createdQuestion._id.toString(), session.code, createdQuestion.content);
         }
 
         res.status(200).json({
@@ -146,6 +149,15 @@ export const createGuestQuestion = async (req: Request, res: Response): Promise<
             return;
         }
 
+        if (session.status !== 'active') {
+            const message = session.status === 'paused'
+                ? 'This session is paused. You cannot submit new questions right now.'
+                : 'This session is no longer accepting questions.';
+
+            res.status(403).json({ success: false, message });
+            return;
+        }
+
         const question = await Question.create({
             content,
             session: sessionId,
@@ -153,7 +165,7 @@ export const createGuestQuestion = async (req: Request, res: Response): Promise<
             guestEmail: email,
             status: 'active',
             isDirectToTeacher: true,
-            analysisStatus: 'not_requested',
+            analysisStatus: 'pending',
             refinementStatus: 'pending',
             originalContent: content
         });
@@ -170,6 +182,8 @@ export const createGuestQuestion = async (req: Request, res: Response): Promise<
 
         // Emit real-time event
         emitToSession(session.code, 'new_question', question);
+
+        void autoAnalyzeQuestion(question._id.toString(), session.code, question.content);
 
         res.status(201).json({
             success: true,

@@ -1,3 +1,33 @@
+## Recent Progress
+
+### Implemented Changes
+
+#### AI-Based Question Analysis and Auto-Responses
+The project now supports automatic AI analysis for submitted questions.
+
+- Every newly submitted question is automatically sent for AI analysis.
+- Questions classified as simple/factual receive an AI-generated answer.
+- Questions classified as complex/conceptual are marked for teacher attention.
+- Analysis results are updated in real time in the teacher view.
+- Guest/public question submission also uses the same AI analysis flow.
+- A shared backend service was added to keep the AI routing logic consistent.
+
+---
+
+## Files Added / Updated
+
+### Added
+- `backend/src/services/questionAnalysisService.ts`
+
+### Updated
+- `backend/src/controllers/questionController.ts`
+- `backend/src/controllers/guestController.ts`
+- `frontend/src/pages/QueryPPTView.tsx`
+- `frontend/src/components/QuestionCard.tsx`
+- `frontend/src/services/api.ts`
+
+---
+
 # Vi-SlideS
 
 Vi-SlideS is an AI-powered, question-driven classroom platform that helps teachers adapt live teaching based on student questions, sentiment, and cognitive understanding.
