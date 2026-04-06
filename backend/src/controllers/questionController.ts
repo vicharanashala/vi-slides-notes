@@ -383,8 +383,8 @@ import { Request, Response } from 'express';
 import Question from '../models/Question';
 import Session from '../models/Session';
 import { emitToSession } from '../config/socket';
-import { analyzeQuestion } from '../services/aiService';
 import { queueQuestion } from '../services/questionBatchService';
+import { autoAnalyzeQuestion } from '../services/questionAnalysisService';
 import User from '../models/User';
 
 // @desc    Create a new question
@@ -405,12 +405,21 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             return;
         }
 
+        if (session.status !== 'active') {
+            const message = session.status === 'paused'
+                ? 'This session is paused. You cannot submit new questions right now.'
+                : 'This session is no longer accepting questions.';
+
+            res.status(403).json({ success: false, message });
+            return;
+        }
+
         const question = await Question.create({
             content,
             user: req.user?._id,
             session: sessionId,
             isDirectToTeacher: !!isDirectToTeacher,
-            analysisStatus: 'not_requested',
+            analysisStatus: 'pending',
             refinementStatus: 'pending', // Mark as pending refinement
             originalContent: content // Store original before refinement
         });
@@ -425,7 +434,8 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
         emitToSession(session.code, 'new_question', {
             ...populatedQuestion?.toObject(),
             refinementStatus: 'pending',
-            message: 'Question submitted and queued for refinement'
+            analysisStatus: 'pending',
+            message: 'Question submitted and queued for refinement and AI analysis'
         });
 
         // Queue for batch refinement
@@ -437,11 +447,14 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             timestamp: Date.now()
         });
 
+        void autoAnalyzeQuestion(question._id.toString(), session.code, content);
+
         res.status(201).json({
             success: true,
             data: populatedQuestion,
             refinementStatus: 'pending',
-            message: 'Question submitted and queued for grammar/clarity refinement'
+            analysisStatus: 'pending',
+            message: 'Question submitted and queued for grammar/clarity refinement and AI analysis'
         });
 
     } catch (error) {
@@ -731,41 +744,13 @@ export const requestAIAnalysis = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        // Set status to pending
-        question.analysisStatus = 'pending';
-        await question.save();
-
-        // Emit pending status
-        const pendingQuestion = await Question.findById(question._id).populate('user', 'name');
-        emitToSession(session.code, 'update_question', pendingQuestion);
-
-        // Send immediate response
         res.status(200).json({
             success: true,
-            data: pendingQuestion,
+            data: question,
             message: 'AI analysis started'
         });
 
-        // Perform AI analysis asynchronously
-        (async () => {
-            try {
-                const analysis = await analyzeQuestion(question.content);
-
-                await Question.findByIdAndUpdate(question._id, {
-                    aiAnalysis: analysis,
-                    analysisStatus: 'completed'
-                });
-
-                const analyzedQuestion = await Question.findById(question._id).populate('user', 'name');
-                emitToSession(session.code, 'question_analyzed', analyzedQuestion);
-            } catch (err) {
-                console.error('AI Analysis failed:', err);
-                await Question.findByIdAndUpdate(question._id, { analysisStatus: 'failed' });
-
-                const failedQuestion = await Question.findById(question._id).populate('user', 'name');
-                emitToSession(session.code, 'update_question', failedQuestion);
-            }
-        })();
+        void autoAnalyzeQuestion(question._id.toString(), session.code, question.content);
 
     } catch (error) {
         console.error('Request AI analysis error:', error);

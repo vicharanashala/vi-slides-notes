@@ -1699,7 +1699,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, isTeacher, isSpot
                                 >
                                     {question.isPinned ? '📍' : '📌'}
                                 </button>
-                                {!question.aiAnalysis && (
+                                {question.analysisStatus !== 'completed' && (
                                     <button
                                         onClick={handleAIAnalysis}
                                         disabled={aiLoading || question.analysisStatus === 'pending'}
@@ -1724,8 +1724,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, isTeacher, isSpot
                                                 <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }}></div>
                                                 Analyzing...
                                             </>
+                                        ) : question.analysisStatus === 'failed' ? (
+                                            <>Retry AI</>
                                         ) : (
-                                            <>🤖 Ask AI</>
+                                            <>🤖 AI Auto</>
                                         )}
                                     </button>
                                 )}
@@ -1887,6 +1889,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, isTeacher, isSpot
                                 {question.analysisStatus === 'pending' && (
                                     <span className="anim-fade-in" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-muted)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                         🤖 AI is thinking...
+                                    </span>
+                                )}
+
+                                {question.analysisStatus === 'failed' && (
+                                    <span style={{
+                                        fontSize: '0.65rem',
+                                        padding: '0.1rem 0.4rem',
+                                        borderRadius: '4px',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        color: '#ef4444',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                                    }}>
+                                        AI failed, teacher review needed
                                     </span>
                                 )}
 
