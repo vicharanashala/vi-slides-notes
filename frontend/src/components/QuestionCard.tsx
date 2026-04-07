@@ -1538,9 +1538,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, isTeacher, isSpot
             const response = await questionService.deleteQuestion(question._id);
             if (response.success && onDelete) {
                 onDelete(question._id);
+            } else {
+                // Fault before: failed delete responses were silent in UI.
+                // Improvement: show explicit feedback so user knows deletion did not happen.
+                // Before code:
+                // if (response.success && onDelete) {
+                //     onDelete(question._id);
+                // }
+                window.alert('Unable to delete this question right now.');
             }
         } catch (err) {
             console.error('Delete error:', err);
+            // Improvement: surface permission/session failure instead of failing quietly.
+            window.alert('Delete failed. You may not have permission, or the session has expired.');
         } finally {
             setLoading(false);
             setShowDeleteModal(false);

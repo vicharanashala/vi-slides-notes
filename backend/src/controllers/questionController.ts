@@ -533,10 +533,20 @@ export const deleteQuestion = async (req: Request, res: Response): Promise<void>
 
         const session = await Session.findById(question.session).populate('teacher');
 
+        // Fault before: teacher auth sometimes failed because session.teacher could be either
+        // an ObjectId or a populated object, and direct toString() checks were inconsistent.
+        // Improvement: normalize all ids to strings before comparing owner/teacher access.
+        // Before code:
+        // const isOwner = question.user ? question.user.toString() === req.user?._id.toString() : false;
+        // const isTeacher = session?.teacher.toString() === req.user?._id.toString();
+        const requesterId = req.user?._id?.toString();
+        const ownerId = question.user ? question.user.toString() : null;
+        const teacherId = session ? String((session as any).teacher?._id || (session as any).teacher) : null;
+
         // Check if user is owner OR teacher of the session
         // For guest questions (no user), only teacher can delete
-        const isOwner = question.user ? question.user.toString() === req.user?._id.toString() : false;
-        const isTeacher = session?.teacher.toString() === req.user?._id.toString();
+        const isOwner = !!requesterId && ownerId === requesterId;
+        const isTeacher = !!requesterId && teacherId === requesterId;
 
         if (!isOwner && !isTeacher) {
             res.status(403).json({ success: false, message: 'Not authorized to delete this question' });

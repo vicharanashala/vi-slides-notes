@@ -209,6 +209,11 @@ const Dashboard: React.FC = () => {
                                 <p style={{ fontWeight: '600', color: 'var(--color-text)', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
                             </div>
 
+                            
+
+
+                            
+
 
 
                             <button

@@ -1,10 +1,15 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const hostname = window.location.hostname;
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL?.trim() || '/api';
+
+const clearAuthSession = () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+};
 
 const api = axios.create({
     baseURL: API_URL,
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -12,10 +17,10 @@ const api = axios.create({
 
 // Request interceptor to add token to requests
 api.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig) => {
         const token = sessionStorage.getItem('token');
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+            config.headers.set('Authorization', `Bearer ${token}`);
         }
         return config;
     },
@@ -27,12 +32,13 @@ api.interceptors.request.use(
 // Response interceptor to handle errors
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    (error: AxiosError) => {
         if (error.response?.status === 401) {
             // Token expired or invalid
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('user');
-            window.location.href = '/login';
+            clearAuthSession();
+            if (window.location.pathname !== '/login') {
+                window.location.assign('/login');
+            }
         }
         return Promise.reject(error);
     }
