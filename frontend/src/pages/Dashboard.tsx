@@ -231,6 +231,25 @@ const Dashboard: React.FC = () => {
                             </button>
 
                             <button
+                                // onClick={editProfile}
+                                className="btn"
+                                style={{
+                                    width: '100%',
+                                    justifyContent: 'flex-start',
+                                    background: 'transparent',
+                                    color: 'var(--color-text)',
+                                    marginBottom: '0.5rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '0.75rem 1rem'
+                                }}
+                                onMouseEnter={(e)=>{e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}}
+                                onMouseLeave={(e)=>{e.currentTarget.style.background = 'transparent'}}
+                            >
+                                <span style={{ marginRight: '12px', fontSize: '1.2rem'}}>⚙️</span>
+                                <span style={{ fontSize: '1rem' }}>Account Settings</span>  
+                            </button>
+
+                            <button
                                 onClick={handleLogout}
                                 className="btn"
                                 style={{
