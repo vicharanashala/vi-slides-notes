@@ -236,7 +236,7 @@ const Dashboard: React.FC = () => {
                             </button>
 
                             <button
-                                // onClick={editProfile}
+                                onClick={()=>(navigate("/profile"))}
                                 className="btn"
                                 style={{
                                     width: '100%',
