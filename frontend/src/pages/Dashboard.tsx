@@ -1,465 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sessionService } from '../services/sessionService';
+import { Plus, LayoutDashboard, Settings, LogOut, Users, BookOpen, GraduationCap, ShieldCheck } from 'lucide-react';
 
-import { useTheme } from '../contexts/ThemeContext';
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('classes');
 
-import CertificateCard from '../components/CertificateCard';
-import Toast from '../components/Toast';
+  const handleCreateSession = async () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const teacherId = userStr ? JSON.parse(userStr)._id : 'guest-teacher';
 
-const Dashboard: React.FC = () => {
-    const { user, logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
-    const navigate = useNavigate();
-
-    const [loading, setLoading] = useState(true);
-    const [joinCode, setJoinCode] = useState('');
-    const [sessionTitle, setSessionTitle] = useState('');
-    const [error, setError] = useState('');
-    const [pastSessions, setPastSessions] = useState<any[]>([]);
-    const [hiddenCerts, setHiddenCerts] = useState<string[]>(() => {
-        const saved = localStorage.getItem('hidden_certs');
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    const [showUserMenu, setShowUserMenu] = useState(false);
-    const [showCertModal, setShowCertModal] = useState(false);
-    const [showQRModal, setShowQRModal] = useState(false);
-    const [activeSession, setActiveSession] = useState<any>(null);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-    useEffect(() => {
-        const fetchActiveSession = async () => {
-            try {
-                const response = await sessionService.getActiveSession();
-                if (response.success && response.data) {
-                    // Only redirect students directly to session
-                    // Teachers should see dashboard with controls and QR code
-                    if (user?.role === 'Student') {
-                        navigate(`/session/${response.data.code}`);
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching active session:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-
-
-        const fetchPastSessions = async () => {
-            if (user?.role === 'Student') {
-                try {
-                    // We need to implement this in service/backend first
-                    const response = await sessionService.getStudentSessions();
-                    if (response.success) {
-                        setPastSessions(response.data);
-                    }
-                } catch (err) {
-                    console.error('Error fetching past sessions:', err);
-                }
-            }
-        };
-
-        fetchActiveSession();
-        fetchPastSessions();
-
-        // For teachers, also fetch active session for QR code display
-        const fetchActiveSessionForQR = async () => {
-            if (user?.role === 'Teacher') {
-                try {
-                    const response = await sessionService.getActiveSession();
-                    if (response.success && response.data) {
-                        setActiveSession(response.data);
-                    }
-                } catch (err) {
-                    console.error('Error fetching sessions:', err);
-                }
-            }
-        };
-        fetchActiveSessionForQR();
-    }, [navigate, user]);
-
-    const handleDeleteCert = (sessionId: string) => {
-        const newHidden = [...hiddenCerts, sessionId];
-        setHiddenCerts(newHidden);
-        localStorage.setItem('hidden_certs', JSON.stringify(newHidden));
-        setToast({ message: 'Certificate removed from view', type: 'info' });
-    };
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
-
-    const handleCreateSession = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!sessionTitle.trim()) return;
-
-        setError('');
-        try {
-            const response = await sessionService.createSession({ title: sessionTitle });
-            if (response.success) {
-                navigate(`/session/${response.data.code}`);
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to create session');
-        }
-    };
-
-    const handleJoinSession = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!joinCode.trim()) return;
-
-        setError('');
-        try {
-            const response = await sessionService.joinSession(joinCode);
-            if (response.success) {
-                navigate(`/session/${response.data.code}`);
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to join session. Please check the code.');
-        }
-    };
-
-
-
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
-                <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
-            </div>
-        );
+      const res = await fetch('http://localhost:5000/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacherId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      
+      navigate(`/teacher-session/${data.sessionCode}`);
+    } catch (error) {
+       console.error("Failed to create session", error);
+       alert("Failed to create session. Ensure the backend is running and USE_MOCK_DB is enabled if you don't have MongoDB.");
     }
+  };
 
-    return (
-        <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-            {/* Navigation Bar */}
-            <nav style={{
-                background: 'var(--color-bg-secondary)',
-                opacity: 0.95,
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid var(--color-surface)',
-                padding: '1rem 2rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                position: 'relative',
-                zIndex: 1000
-            }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    Vi-SlideS
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex text-gray-900 font-sans">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-gray-200 bg-white flex flex-col">
+        <div className="p-6 border-b border-gray-200 flex items-center gap-3 text-indigo-600 font-bold text-xl tracking-tight">
+           <BookOpen className="w-6 h-6" />
+           Vi-SlideS
+        </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <button 
+            onClick={() => setActiveTab('classes')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'classes' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            Active Classes
+          </button>
+          <button 
+            onClick={() => setActiveTab('students')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'students' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            Students
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            Settings
+          </button>
+        </nav>
+        <div className="p-4 border-t border-gray-200">
+          <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+        <header className="h-20 border-b border-gray-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-10 transition-all">
+          <h1 className="text-2xl font-semibold text-gray-900">Teacher Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+              TD
+            </div>
+          </div>
+        </header>
+
+        <div className="p-8 max-w-6xl w-full flex-1">
+          {activeTab === 'classes' && (
+            <>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-xl font-medium text-gray-900">Your Sessions</h2>
+                  <p className="text-sm text-gray-500 mt-1">Manage your active and upcoming classes</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-                    {/* Premium Avatar Trigger */}
-                    <div
-                        style={{
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.8rem',
-                            padding: '0.5rem 1.2rem',
-                            borderRadius: 'var(--radius-full)',
-                            transition: 'all 0.2s ease',
-                            border: showUserMenu ? '1px solid var(--color-primary)' : '1px solid transparent',
-                            background: showUserMenu ? 'rgba(255,255,255,0.05)' : 'transparent'
-                        }}
-                        onClick={() => setShowUserMenu(!showUserMenu)}
-                    >
-                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--color-text)' }}>{user?.name}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-primary-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{user?.role}</span>
-                        </div>
-                        <div style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '50%',
-                            background: user?.avatar ? `url(${user.avatar}) center/cover no-repeat` : 'var(--gradient-primary)',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            color: 'white',
-                            boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)',
-                            border: '2px solid rgba(255,255,255,0.2)'
-                        }}>
-                            {!user?.avatar && user?.name?.charAt(0).toUpperCase()}
-                        </div>
-                    </div>
+                <button 
+                  onClick={handleCreateSession}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-sm active:scale-95"
+                >
+                  <Plus className="w-5 h-5" />
+                  New Session
+                </button>
+              </div>
 
-                    {/* Premium Dropdown Menu */}
-                    {showUserMenu && (
-                        <div className="glass-card slide-in" style={{
-                            position: 'absolute',
-                            top: '125%',
-                            right: 0,
-                            width: '300px',
-                            padding: '1rem',
-                            zIndex: 1000,
-                            borderRadius: 'var(--radius-lg)',
-                            background: 'var(--color-bg-secondary)',
-                            border: '1px solid var(--color-surface)',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(99, 102, 241, 0.3)'
-                        }}>
-                            <div style={{ paddingBottom: '1rem', borderBottom: '1px solid var(--color-surface)', marginBottom: '1rem' }}>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Signed in as</p>
-                                <p style={{ fontWeight: '600', color: 'var(--color-text)', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
-                            </div>
-
-
-
-                            <button
-                                onClick={() => { toggleTheme(); }}
-                                className="btn"
-                                style={{
-                                    width: '100%',
-                                    justifyContent: 'flex-start',
-                                    background: 'transparent',
-                                    color: 'var(--color-text)',
-                                    marginBottom: '0.5rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem 1rem'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <span style={{ marginRight: '12px', fontSize: '1.2rem' }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                                <span style={{ fontSize: '1rem' }}>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                            </button>
-
-                            <button
-                                onClick={handleLogout}
-                                className="btn"
-                                style={{
-                                    width: '100%',
-                                    justifyContent: 'flex-start',
-                                    background: 'transparent',
-                                    color: '#ef4444',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem 1rem'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <span style={{ marginRight: '12px', fontSize: '1.2rem' }}>🚪</span>
-                                <span style={{ fontSize: '1rem' }}>Logout</span>
-                            </button>
-                        </div>
-                    )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-2xl p-8 flex flex-col items-center justify-center text-center text-gray-500 min-h-[300px] col-span-full hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 border border-gray-200 shadow-sm">
+                    <LayoutDashboard className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No active sessions</h3>
+                  <p className="text-sm max-w-xs mb-6 leading-relaxed">Create a new session to generate a unique join code for your students and begin the class.</p>
+                  <button 
+                    onClick={handleCreateSession}
+                    className="text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1 group"
+                  >
+                    <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" /> Create your first session
+                  </button>
                 </div>
-            </nav>
+              </div>
+            </>
+          )}
 
-            {/* Main Content */}
-            <main className="container fade-in" style={{ paddingTop: '3rem' }}>
-                <div className="glass-card" style={{ marginBottom: '2rem' }}>
-                    <h1 className="mb-2">Welcome, {user?.name}</h1>
-                    <p className="text-muted">
-                        {user?.role?.toLowerCase() === 'teacher' ? 'Ready to interact with your students?' : 'Join a session to start asking questions!'}
-                    </p>
+          {activeTab === 'students' && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center max-w-2xl mx-auto shadow-sm">
+               <GraduationCap className="w-16 h-16 text-indigo-600 mx-auto mb-6" />
+               <h2 className="text-2xl font-bold text-gray-900 mb-4">Student Management</h2>
+               <p className="text-gray-500 leading-relaxed mb-8">
+                 In Sprint 4, you will be able to manage your student roster, track individual participation levels, and view personalized AI-generated progress reports.
+               </p>
+               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100 italic">
+                 Coming in Sprint 4: Analytics & Polish
+               </div>
+            </div>
+          )}
 
-                    {error && (
-                        <div className="alert alert-error slide-in" style={{ marginTop: '1rem' }}>
-                            {error}
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl">
+               <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
+               <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 shadow-sm overflow-hidden text-left">
+                  <div className="p-6 flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                           <ShieldCheck className="w-6 h-6 text-emerald-600" />
                         </div>
-                    )}
-                </div>
-
-                {/* Quick Actions Grid */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: '1.5rem',
-                    alignItems: 'start'
-                }}>
-                    {user?.role?.toLowerCase() === 'teacher' ? (
-                        <>
-                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0) 100%)' }}>
-                                <h3>Start a Session</h3>
-                                <p className="text-muted mt-1">Create a new live Q&A session for your class.</p>
-                                <form onSubmit={handleCreateSession} style={{ marginTop: '1.5rem' }}>
-                                    <div className="form-group">
-                                        <input
-                                            type="text"
-                                            placeholder="Session Title (e.g. Intro to Biology)"
-                                            className="form-input"
-                                            value={sessionTitle}
-                                            onChange={(e) => setSessionTitle(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary btn-block">Create Now</button>
-                                </form>
-                            </div>
-                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0) 100%)' }}>
-                                <h3>📚 Assignments</h3>
-                                <p className="text-muted mt-1">Create and grade student assignments.</p>
-                                <button onClick={() => navigate('/assignments')} className="btn btn-primary mt-2">Manage Assignments</button>
-                            </div>
-
-                        </>
-                    ) : (
-                        <>
-                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0) 100%)' }}>
-                                <h3>Join Session</h3>
-                                <p className="text-muted mt-1">Enter the 6-digit code provided by your teacher.</p>
-                                <form onSubmit={handleJoinSession} style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-                                    <input
-                                        type="text"
-                                        placeholder="E.G. AB1234"
-                                        className="form-input"
-                                        style={{ textTransform: 'uppercase' }}
-                                        value={joinCode}
-                                        onChange={(e) => setJoinCode(e.target.value)}
-                                        required
-                                    />
-                                    <button type="submit" className="btn btn-primary">Join</button>
-                                </form>
-                            </div>
-                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0) 100%)' }}>
-                                <h3>📚 Assignments</h3>
-                                <p className="text-muted mt-1">View and submit your assignments.</p>
-                                <button onClick={() => navigate('/assignments')} className="btn btn-primary mt-2">View Assignments</button>
-                            </div>
-                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0) 100%)' }}>
-                                <h3>🎓 Certificates</h3>
-                                <p className="text-muted mt-1">View and download your participation certificates.</p>
-                                <button onClick={() => setShowCertModal(true)} className="btn btn-primary mt-2">View Certificates</button>
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Certificates Modal */}
-                {
-                    showCertModal && (
-                        <div className="modal-overlay fade-in" style={{
-                            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                            background: 'rgba(0,0,0,0.8)', zIndex: 1000,
-                            display: 'flex', justifyContent: 'center', alignItems: 'center',
-                            padding: '2rem'
-                        }}>
-                            <div className="glass-card slide-in" style={{
-                                width: '100%',
-                                maxWidth: '900px',
-                                maxHeight: '90vh',
-                                overflowY: 'auto',
-                                position: 'relative'
-                            }}>
-                                <button
-                                    onClick={() => setShowCertModal(false)}
-                                    style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer', zIndex: 10 }}
-                                >
-                                    ✕
-                                </button>
-
-                                <h2 className="mb-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span>🎓</span> Your Certificates
-                                </h2>
-
-                                {pastSessions.filter(session => !hiddenCerts.includes(session._id)).length === 0 ? (
-                                    <p className="text-muted">No certificates found. Join sessions to earn them!</p>
-                                ) : (
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-                                        gap: '2rem',
-                                        marginTop: '1.5rem'
-                                    }}>
-                                        {pastSessions
-                                            .filter(session => !hiddenCerts.includes(session._id))
-                                            .map((session) => (
-                                                <CertificateCard
-                                                    key={session._id}
-                                                    sessionTitle={session.title}
-                                                    sessionCode={session.code}
-                                                    studentName={user?.name || 'Student'}
-                                                    date={session.createdAt}
-                                                    teacherName="Tarun Venkat"
-                                                    onDelete={() => handleDeleteCert(session._id)}
-                                                />
-                                            ))}
-                                    </div>
-                                )}
-                            </div>
+                        <div>
+                           <div className="font-semibold text-gray-900">Mock Mode Active</div>
+                           <div className="text-sm text-gray-500">You are currently running in development without MongoDB</div>
                         </div>
-                    )
-                }
-            </main >
-
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-
-            {/* QR Code Modal */}
-            {showQRModal && activeSession && (
-                <div className="modal-overlay fade-in" style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.8)', zIndex: 1000,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center',
-                    padding: '2rem'
-                }}>
-                    <div className="glass-card slide-in" style={{
-                        width: '100%',
-                        maxWidth: '500px',
-                        position: 'relative',
-                        textAlign: 'center'
-                    }}>
-                        <button
-                            onClick={() => setShowQRModal(false)}
-                            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer', zIndex: 10 }}
-                        >
-                            ✕
-                        </button>
-
-                        <h2 className="mb-2" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                            <span>📱</span> Join with QR Code
-                        </h2>
-
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
-                            {activeSession.title}
-                        </p>
-
-                        {activeSession.qrCodeDataUrl ? (
-                            <div style={{ background: 'white', padding: '1.5rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem' }}>
-                                <img src={activeSession.qrCodeDataUrl} alt="QR Code" style={{ width: '100%', maxWidth: '300px', height: 'auto' }} />
-                            </div>
-                        ) : (
-                            <div style={{ padding: '2rem', color: 'var(--color-text-muted)' }}>
-                                QR Code not available
-                            </div>
-                        )}
-
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Join URL:</p>
-                            <p style={{ fontSize: '0.9rem', fontFamily: 'monospace', color: 'var(--color-primary-light)', wordBreak: 'break-all' }}>
-                                {window.location.origin}/join/{activeSession.code}
-                            </p>
+                     </div>
+                     <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-md uppercase tracking-tight italic border border-emerald-200">Enabled</span>
+                  </div>
+                  <div className="p-6 opacity-50 cursor-not-allowed">
+                     <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                           <Settings className="w-6 h-6 text-gray-400" />
                         </div>
-
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/join/${activeSession.code}`);
-                                setToast({ message: 'Join link copied to clipboard!', type: 'success' });
-                            }}
-                            className="btn btn-primary btn-block"
-                        >
-                            📋 Copy Join Link
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Certificates Section for Students */}
-
-        </div >
-    );
-};
-
-export default Dashboard;
+                        <div>
+                           <div className="font-semibold text-gray-900">Advanced AI Configurations</div>
+                           <div className="text-sm text-gray-500 disabled">Adjust thresholds for AI triage complexity and suggested responses</div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -1,95 +1,51 @@
-# Vi-SlideS
+# Vi-SlideS 🚀
 
-Vi-SlideS is an AI-powered, question-driven classroom platform that helps teachers adapt live teaching based on student questions, sentiment, and cognitive understanding.
+**Vi-SlideS is a real-time, AI-powered interactive classroom and presentation platform that fundamentally revolutionizes teaching by making it question-driven and adaptive.**
 
-## 🚀 Phase 1 Features: Authentication & Setup
+Instead of dealing with massive lecture halls where students are too intimidated to ask questions, or teachers getting overwhelmed with repetitive queries, Vi-SlideS intelligently sits between the student and the professor.
 
-The project is currently in Phase 1, offering a fully functional MERN stack foundation with:
+## 🌟 The Problem Statement
+Traditional lectures are often one-directional. Students hesitate to ask questions, leading to knowledge gaps. When they do ask questions, low-level factual queries can derail the pace of the lecture, overwhelming the teacher and wasting class time. Furthermore, teachers struggle to "read the room" and gauge the collective mood, engagement, and conceptual understanding of 100+ students simultaneously.
 
-- **Authentication System**: Secure JWT-based login and registration.
-- **Role-Based Access**: Specialized dashboards for Teachers and Students.
-- **Premium UI**: Modern, responsive interface with glassmorphism design.
-- **Backend Architecture**: Scalable Express.js + TypeScript server.
-- **Database**: MongoDB Atlas integration for cloud data storage.
+## 🎯 The Solution
+Vi-SlideS transforms lectures into adaptive learning experiences:
+1. **Smart Triage (AI-Deflection)**: Students submit questions anonymously during the lesson. Vi-SlideS uses Google Gemini to rank the *Cognitive Complexity* of the question on a scale of 1-10.
+2. **Instant Automated TA**: Simple, factual questions (Complexity $\le$ 4) are instantly resolved by the generative AI, completely deflecting the noise away from the teacher.
+3. **Teacher Moderation Dashboard**: Complex, analytical, or subjective questions (Complexity $>$ 4) bypass the AI and route directly to the human Teacher's live dashboard, color-coded by urgency.
+4. **Session Analytics**: Post-class, the system evaluates all submissions to perform Sentiment and Mood Analysis, presenting the teacher with a dashboard summarizing class motivation and understanding.
 
-## 🛠️ Tech Stack
+## ✨ Key Implemented Features
 
-- **Frontend**: React, TypeScript, Vite, Vanilla CSS (Premium Design)
-- **Backend**: Node.js, Express, TypeScript, JWT
-- **Database**: MongoDB Atlas
+### Phase 1: Foundation & Authentication
+- Secure JWT-based Authentication separated by "Teacher" and "Student" roles.
+- Modern landing page and registration/login interfaces using TailwindCSS.
 
-## 🚦 Getting Started
+### Phase 2: Sessions & Real-time Connectivity
+- Teachers can create a live Presentation Session with a unique 6-character broadcast code.
+- Students can seamlessly join the active session via code.
+- Core Mongoose models established for `Users`, `Sessions`, and `Questions`.
 
-### Prerequisites
+### Phase 3: In-Class Questions & AI Triage
+- **Real-time Slide Synchronization**: Socket.io broadcasts the teacher's current slide deck position perfectly to all student screens.
+- **Smart Triage Architecture**: Gemini 2.5 Flash automatically determines whether to provide an auto-answer or forward the question to the Teacher.
+- **Teacher "Auto-Draft"**: A magical button that allows the teacher to press one click and have Gemini pre-generate a draft reply to a complex question for their approval.
+- **Student Escalation (Still Confused)**: Students can override AI answers via a "Still Confused? Ask Teacher" flow, which re-routes the problem to the human professor's queue.
 
-- Node.js (v18 or higher)
-- VS Code
-- MongoDB Atlas Account
+### Phase 4: Analytics & Session Control Polish
+- **Dynamic Teacher Session Controls**: Start, Pause, and End Session capabilities. Pausing the session instantly locks all student input textareas globally via WebSockets.
+- **Post-Session Intelligence Report**: An analytics dashboard featuring holistic class interactions, AI-deflection rates, average cognitive complexity, and a natural language Vibe/Mood Analysis summary.
 
-### 1. Clone & Setup
+## 🛠 Technology Stack
+- **Frontend**: React.js, TypeScript, Tailwind CSS, Vite, Lucide Icons
+- **Backend**: Node.js, Express.js, TypeScript
+- **Database**: MongoDB (Mongoose)
+- **Real-time Engine**: Socket.io
+- **AI/NLP Engine**: `@google/genai` (Google Gemini 2.5 Flash)
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd vi-slides
-```
+## 🚀 Upcoming Features
+- Expand AI capabilities to automatically generate quizzes based on the most confused concepts.
+- Provide exportable `.csv` grading sheets logging student participation metrics.
+- Support audio-based questioning using Whisper transcription.
 
-### 2. Backend Setup
-
-```bash
-cd backend
-npm install
-```
-
-Create a `.env` file in the `backend` directory (copy from `.env.example`):
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/vi-slides?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-key
-JWT_EXPIRE=7d
-NODE_ENV=development
-```
-*Note: You must replace `MONGODB_URI` with your actual MongoDB Atlas connection string.*
-
-Start the backend server:
-```bash
-npm run dev
-```
-
-### 3. Frontend Setup
-
-Open a new terminal:
-```bash
-cd frontend
-npm install
-```
-
-Create a `.env` file in the `frontend` directory:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-Start the frontend development server:
-```bash
-npm run dev
-```
-
-### 4. Verification
-
-- Open your browser to `http://localhost:5173`
-- Register a new account (Select Teacher or Student role)
-- You should be redirected to the secure dashboard
-- Check MongoDB Atlas to see the created user document
-
-## 📝 Roadmap
-
-- [x] **Phase 1: Project Setup & Authentication**
-- [ ] Phase 2: Class Session Management
-- [ ] Phase 3: Question Submission System
-- [ ] Phase 4: AI Analysis & Integration
-- [ ] Phase 5: Teacher Insights Dashboard
-- [ ] Phase 6: History & Reports
-
-## License
-
-MIT License
+---
+*Developed under the guidance and mentorship of Rohit Sharma.*
