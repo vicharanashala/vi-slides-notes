@@ -87,72 +87,80 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ sessionId, sessionStatus,
     };
 
     return (
-        <div className="glass-card" style={{ marginBottom: '1.5rem', background: 'rgba(255, 255, 255, 0.03)' }}>
-            <form onSubmit={handleSubmit}>
-                <div className="form-group" style={{ marginBottom: '0.75rem', position: 'relative' }}>
-                    <textarea
-                        className="form-input"
-                        placeholder={isPaused ? "Session is paused by teacher..." : "Ask a question..."}
-                        rows={3}
-                        style={{
-                            resize: 'none',
-                            background: isPaused ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)',
-                            borderRadius: 'var(--radius-lg)',
-                            transition: 'all 0.3s ease',
-                            cursor: isPaused ? 'not-allowed' : 'text',
-                            paddingRight: '3rem'
-                        }}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !isPaused) {
-                                e.preventDefault();
-                                handleSubmit(e);
-                            }
-                        }}
-                        disabled={loading || isPaused}
-                    ></textarea>
+        <div style={{ marginBottom: '1.5rem' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <textarea
+                    className="form-input"
+                    placeholder={isPaused ? "Session is paused by teacher" : "Type your question..."}
+                    rows={2}
+                    style={{
+                        resize: 'none',
+                        background: isPaused ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        cursor: isPaused ? 'not-allowed' : 'text',
+                        width: '100%',
+                        padding: '1rem',
+                        fontSize: '0.95rem',
+                        transition: 'all 0.2s ease',
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+                        color: 'var(--color-text-primary)'
+                    }}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !isPaused) {
+                            e.preventDefault();
+                            handleSubmit(e);
+                        }
+                    }}
+                    disabled={loading || isPaused}
+                />
 
-                    {!isPaused && (
+                {error && <span style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: 500, paddingLeft: '0.5rem' }}>{error}</span>}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ opacity: isPaused ? 0.5 : 1 }}>
                         <button
                             type="button"
                             onClick={handleVoiceInput}
                             style={{
-                                position: 'absolute',
-                                right: '1rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: isListening ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
-                                border: 'none',
+                                background: isListening ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)',
+                                border: isListening ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
                                 cursor: 'pointer',
-                                fontSize: '1.2rem',
-                                color: isListening ? '#ef4444' : 'var(--color-primary-light)',
-                                padding: '8px',
-                                borderRadius: '50%',
+                                padding: '0.5rem 0.8rem',
+                                borderRadius: '8px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'all 0.3s ease',
-                                boxShadow: isListening ? '0 0 10px rgba(239, 68, 68, 0.3)' : 'none'
+                                gap: '0.5rem',
+                                color: isListening ? '#ef4444' : 'var(--color-text-secondary)',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.2s ease',
+                                boxShadow: isListening ? '0 0 10px rgba(239, 68, 68, 0.2)' : 'none'
                             }}
                             title="Voice Input"
-                            disabled={loading}
+                            disabled={loading || isPaused}
                         >
-                            {isListening ? '🛑' : '🎤'}
+                            {isListening ? '🛑 Stop Recording...' : '🎤 Voice Type'}
                         </button>
-                    )}
-                </div>
+                    </div>
 
-                {error && <span className="form-error mb-2">{error}</span>}
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         type="submit"
                         className="btn btn-primary"
-                        style={{ padding: '0.6rem 1.5rem', borderRadius: 'var(--radius-full)' }}
+                        style={{
+                            padding: '0.6rem 1.25rem',
+                            borderRadius: '10px',
+                            fontWeight: 600,
+                            letterSpacing: '0.3px',
+                            boxShadow: content.trim() ? '0 4px 15px rgba(99, 102, 241, 0.4)' : 'none',
+                            opacity: (!content.trim() || isPaused || loading) ? 0.6 : 1,
+                            transition: 'all 0.2s ease'
+                        }}
                         disabled={loading || !content.trim() || isPaused}
                     >
-                        {loading ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div> : (isPaused ? 'Paused' : 'Send Question')}
+                        {loading ? 'Sending...' : (isPaused ? 'Paused' : 'Submit')}
                     </button>
                 </div>
             </form>
