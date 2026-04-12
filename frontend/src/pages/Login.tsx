@@ -19,7 +19,7 @@ const Login: React.FC = () => {
     // Better to update AuthContext to force set user.
     // Let's check AuthContext again. It has setUser/updateUser.
 
-    // Correction: AuthContext has `login` function which does the API call. 
+    // Correction: AuthContext has `login` function which does the API call.
     // I will manually call authService.googleLogin, then update context.
 
     const navigate = useNavigate();
@@ -45,6 +45,9 @@ const Login: React.FC = () => {
         }
     };
 
+    const [showRolePopup, setShowRolePopup] = useState(false);
+    const [googleToken, setGoogleToken] = useState<any | null>(null);
+
     const handleGoogleSuccess = async (credentialResponse: any) => {
         try {
             const res = await authService.googleLogin(credentialResponse.credential);
@@ -55,7 +58,38 @@ const Login: React.FC = () => {
                 window.location.href = '/dashboard'; // Hard reload to ensure context picks up or use proper context method
             }
         } catch (err: any) {
+            const message = err.response?.data?.message;
+
+            if (message === "User not registered.") {
+                // Store token and open role selection popup
+                setGoogleToken(credentialResponse.credential);
+                setShowRolePopup(true);
+            } else {
+                setError(message || 'Google Login failed');
+            }
+        }
+    };
+
+    const handleRoleSelect = async (role: 'Teacher' | 'Student') => {
+        if (!googleToken) {
+            setError('Session expired. Please try Google login again.');
+            setShowRolePopup(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            const res = await authService.googleLogin(googleToken,role);
+
+            if (res.success) {
+                sessionStorage.setItem('token', res.token);
+                sessionStorage.setItem('user', JSON.stringify(res.user));
+                window.location.href = '/dashboard';
+            }
+        } catch (err: any) {
             setError(err.response?.data?.message || 'Google Login failed');
+        } finally {
+            setLoading(false);
+            setShowRolePopup(false);
         }
     };
 
@@ -71,7 +105,9 @@ const Login: React.FC = () => {
                 <div className="auth-card glass-card">
                     <div className="auth-header">
                         <h1 className="auth-title">Welcome Back</h1>
-                        <p className="auth-subtitle">Sign in to continue to Vi-SlideS</p>
+                        <p className="auth-subtitle">
+                            Sign in to continue to Vi-SlideS
+                        </p>
                     </div>
 
                     {error && (
@@ -82,7 +118,9 @@ const Login: React.FC = () => {
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
-                            <label htmlFor="email" className="form-label">Email Address</label>
+                            <label htmlFor="email" className="form-label">
+                                Email Address
+                            </label>
                             <input
                                 type="email"
                                 id="email"
@@ -96,39 +134,40 @@ const Login: React.FC = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="password" className="form-label">Password</label>
-                            <div style={{ position: 'relative' }}>
+                            <label htmlFor="password" className="form-label">
+                                Password
+                            </label>
+
+                            <div style={{ position: "relative" }}>
                                 <input
-                                    type={showPassword ? 'text' : 'password'}
+                                    type={showPassword ? "text" : "password"}
                                     id="password"
                                     name="password"
                                     className="form-input"
                                     placeholder="••••••••"
-                                    style={{ paddingRight: '2.5rem' }}
+                                    style={{ paddingRight: "2.5rem" }}
                                     value={formData.password}
                                     onChange={onChange}
                                     required
                                 />
+
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     style={{
-                                        position: 'absolute',
-                                        right: '10px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--color-primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '1.2rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        background: "none",
+                                        border: "none",
+                                        color: "var(--color-primary)",
+                                        cursor: "pointer",
+                                        fontSize: "1.2rem",
                                         zIndex: 10
                                     }}
                                 >
-                                    {showPassword ? '👁️' : '🙈'}
+                                    {showPassword ? "👁️" : "🙈"}
                                 </button>
                             </div>
                         </div>
@@ -141,23 +180,59 @@ const Login: React.FC = () => {
                             {loading ? (
                                 <>
                                     <span className="spinner"></span>
-                                    <span style={{ marginLeft: '0.5rem' }}>Signing in...</span>
+                                    <span style={{ marginLeft: "0.5rem" }}>
+                                Signing in...
+                            </span>
                                 </>
                             ) : (
-                                'Sign In'
+                                "Sign In"
                             )}
                         </button>
                     </form>
 
-                    <div style={{ margin: '1.5rem 0', textAlign: 'center', position: 'relative' }}>
-                        <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0 10px', color: '#ccc', position: 'relative', zIndex: 1, borderRadius: '4px' }}>OR</span>
-                        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(255, 255, 255, 0.1)', zIndex: 0 }}></div>
+                    {/* Divider */}
+                    <div
+                        style={{
+                            margin: "1.5rem 0",
+                            textAlign: "center",
+                            position: "relative"
+                        }}
+                    >
+                <span
+                    style={{
+                        background: "rgba(255,255,255,0.05)",
+                        padding: "0 10px",
+                        color: "#ccc",
+                        position: "relative",
+                        zIndex: 1,
+                        borderRadius: "4px"
+                    }}
+                >
+                    OR
+                </span>
+                        <div
+                            style={{
+                                position: "absolute",
+                                top: "50%",
+                                left: 0,
+                                right: 0,
+                                height: "1px",
+                                background: "rgba(255,255,255,0.1)"
+                            }}
+                        ></div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    {/* Google Login */}
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            marginBottom: "1.5rem"
+                        }}
+                    >
                         <GoogleLogin
                             onSuccess={handleGoogleSuccess}
-                            onError={() => setError('Google Login Failed')}
+                            onError={() => setError("Google Login Failed")}
                             theme="filled_black"
                             shape="pill"
                             width="250"
@@ -166,15 +241,72 @@ const Login: React.FC = () => {
 
                     <div className="auth-footer">
                         <p>
-                            Don't have an account?{' '}
+                            Don't have an account?{" "}
                             <Link to="/register" className="auth-link">
                                 Sign Up
                             </Link>
                         </p>
                     </div>
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+
+            {/* ROLE SELECTION MODAL */}
+            {showRolePopup && (
+                <div className="role-popup-overlay">
+                    <div className="role-popup glass-card fade-in">
+                        <h3 style={{ marginBottom: "0.5rem" }}>
+                            Select Your Role
+                        </h3>
+
+                        <p style={{ color: "#aaa", marginBottom: "1.5rem" }}>
+                            Choose how you want to continue
+                        </p>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "10px"
+                            }}
+                        >
+                            <button
+                                className="btn btn-primary btn-block"
+                                onClick={() => handleRoleSelect("Student")}
+                                disabled={loading}
+                            >
+                                {loading
+                                    ? "Please wait..."
+                                    : "🎓 Continue as Student"}
+                            </button>
+
+                            <button
+                                className="btn btn-secondary btn-block"
+                                onClick={() => handleRoleSelect("Teacher")}
+                                disabled={loading}
+                            >
+                                {loading
+                                    ? "Please wait..."
+                                    : "👨‍🏫 Continue as Teacher"}
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowRolePopup(false)}
+                            disabled={loading}
+                            style={{
+                                marginTop: "1rem",
+                                background: "none",
+                                border: "none",
+                                color: "#888",
+                                cursor: "pointer"
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

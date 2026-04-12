@@ -239,7 +239,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         const { token, role } = req.body;
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-        // Verify the token
+        // Verify token
         const ticket = await client.verifyIdToken({
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -258,11 +258,43 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        // Check if user exists
+        // Check existing user
         let user = await User.findOne({ email });
 
+        // =========================
+        // 🔹 CASE 1: USER EXISTS
+        // =========================
+        if (user) {
+            let updated = false;
+
+            if (!user.googleId) {
+                user.googleId = googleId;
+                updated = true;
+            }
+
+            if (picture && !user.avatar) {
+                user.avatar = picture;
+                updated = true;
+            }
+
+            if (updated) await user.save();
+        }
+
+        // =========================
+        // 🔹 CASE 2: USER NOT EXISTS
+        // =========================
         if (!user) {
-            // Register new user
+
+            // ❌ No role → ask frontend to choose
+            if (!role) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not registered.'
+                });
+                return;
+            }
+
+            // 🔥 Role exists → CREATE USER
             const userRole = role === 'Teacher' || role === 'Student' ? role : 'Student';
 
             user = await User.create({
@@ -272,21 +304,11 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
                 role: userRole,
                 avatar: picture
             });
-        } else {
-            // If user exists but has no googleId or avatar, update it
-            let updated = false;
-            if (!user.googleId) {
-                user.googleId = googleId;
-                updated = true;
-            }
-            if (picture && !user.avatar) {
-                user.avatar = picture;
-                updated = true;
-            }
-            if (updated) await user.save();
         }
 
-        // Generate token
+        // =========================
+        // 🔹 GENERATE TOKEN
+        // =========================
         const appToken = generateToken(user._id.toString());
 
         res.status(200).json({
@@ -309,7 +331,6 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         });
     }
 };
-
 // @desc    Get top users by points
 // @route   GET /api/auth/leaderboard
 // @access  Public
