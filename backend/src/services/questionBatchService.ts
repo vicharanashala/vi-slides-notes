@@ -5,7 +5,7 @@
  */
 
 import { emitToSession } from '../config/socket';
-import { batchRefineQuestions } from './aiService';
+import { batchRefineQuestions, analyzeQuestion } from './aiService';
 import Question from '../models/Question';
 import mongoose from 'mongoose';
 
@@ -120,7 +120,11 @@ export const processBatch = async (sessionId: string): Promise<void> => {
             const refined = refinedResults[i];
 
             try {
-                // Update question with refinement data
+                // Feature #8: Perform automatic AI Analysis for auto-responses
+                console.log(`🤖 AI: Automatically analyzing question ${original._id} for auto-response...`);
+                const analysis = await analyzeQuestion(refined.refinedContent || original.content);
+
+                // Update question with refinement AND AI analysis data
                 const updatedQuestion = await Question.findByIdAndUpdate(
                     original._id,
                     {
@@ -129,7 +133,9 @@ export const processBatch = async (sessionId: string): Promise<void> => {
                             refinementStatus: 'completed',
                             refinedContent: refined.refinedContent,
                             originalContent: original.content,
-                            refinementTimestamp: new Date()
+                            refinementTimestamp: new Date(),
+                            aiAnalysis: analysis,
+                            analysisStatus: 'completed'
                         }
                     },
                     { new: true }
@@ -137,7 +143,7 @@ export const processBatch = async (sessionId: string): Promise<void> => {
 
                 if (updatedQuestion) {
                     refinedQuestions.push(updatedQuestion);
-                    console.log(`✅ Question ${original._id} refined`);
+                    console.log(`✅ Question ${original._id} refined and analyzed`);
                 }
             } catch (error) {
                 console.error(`❌ Error updating question ${original._id}:`, error);

@@ -410,7 +410,7 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             user: req.user?._id,
             session: sessionId,
             isDirectToTeacher: !!isDirectToTeacher,
-            analysisStatus: 'not_requested',
+            analysisStatus: 'pending', // Automatic AI analysis
             refinementStatus: 'pending', // Mark as pending refinement
             originalContent: content // Store original before refinement
         });
@@ -425,14 +425,15 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
         emitToSession(session.code, 'new_question', {
             ...populatedQuestion?.toObject(),
             refinementStatus: 'pending',
-            message: 'Question submitted and queued for refinement'
+            analysisStatus: 'pending',
+            message: 'Question submitted and queued for AI analysis'
         });
 
-        // Queue for batch refinement
+        // Queue for batch refinement and automatic analysis
         queueQuestion({
             _id: question._id,
             content,
-            sessionId: sessionId.toString(),
+            sessionId: session.code, // IMPORTANT: Use session code for socket emission
             userId: req.user?._id?.toString(),
             timestamp: Date.now()
         });
@@ -441,7 +442,8 @@ export const createQuestion = async (req: Request, res: Response): Promise<void>
             success: true,
             data: populatedQuestion,
             refinementStatus: 'pending',
-            message: 'Question submitted and queued for grammar/clarity refinement'
+            analysisStatus: 'pending',
+            message: 'Question submitted and queued for AI analysis and refinement'
         });
 
     } catch (error) {
