@@ -478,7 +478,7 @@ export const getSessionQuestions = async (req: Request, res: Response): Promise<
         });
     }
 };
-
+// Hello
 // @desc    Update a question
 // @route   PUT /api/questions/:id
 // @access  Private (Owner only)
@@ -538,9 +538,16 @@ export const deleteQuestion = async (req: Request, res: Response): Promise<void>
         // Check if user is owner OR teacher of the session
         // For guest questions (no user), only teacher can delete
         const isOwner = question.user ? question.user.toString() === req.user?._id.toString() : false;
-        const isTeacher = session?.teacher.toString() === req.user?._id.toString();
+        // const isTeacher = session?.teacher.toString() === req.user?._id.toString();
+       const teacherId =
+  typeof session?.teacher === 'object' && '_id' in session.teacher
+    ? session.teacher._id
+    : session?.teacher;
+
+const isTeacher = teacherId?.equals(req.user?._id);
 
         if (!isOwner && !isTeacher) {
+            
             res.status(403).json({ success: false, message: 'Not authorized to delete this question' });
             return;
         }
