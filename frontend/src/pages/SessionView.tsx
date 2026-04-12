@@ -3299,33 +3299,28 @@ const SessionView: React.FC = () => {
                         </button>
                     )}
 
-                    {/* Polls at Top of Center */}
-                    <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto 2rem auto' }}>
-                        {isTeacher && showPollCreator && (
-                            <PollCreator
-                                sessionId={session?._id || ''}
-                                onPollCreated={(poll) => {
-                                    setActivePoll(poll);
-                                    setShowPollCreator(false);
-                                }}
-                            />
-                        )}
+                    {isTeacher ? (
+                        <>
+                            {/* Polls at Top of Center */}
+                            <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto 2rem auto' }}>
+                                {showPollCreator && (
+                                    <PollCreator
+                                        sessionId={session?._id || ''}
+                                        onPollCreated={(poll) => {
+                                            setActivePoll(poll);
+                                            setShowPollCreator(false);
+                                        }}
+                                    />
+                                )}
 
-                        {activePoll && (
-                            <PollCard
-                                poll={activePoll}
-                                isTeacher={isTeacher}
-                                onClose={() => setActivePoll(null)}
-                            />
-                        )}
-
-                        {user?.role?.toLowerCase() === 'student' && (
-                            <div style={{ marginBottom: '1rem' }}>
-                                <EngagementControls sessionCode={code || ''} user={user} />
-                                <QuestionInput sessionId={session?._id || ''} sessionStatus={session?.status || 'active'} />
+                                {activePoll && (
+                                    <PollCard
+                                        poll={activePoll}
+                                        isTeacher={isTeacher}
+                                        onClose={() => setActivePoll(null)}
+                                    />
+                                )}
                             </div>
-                        )}
-                    </div>
 
                     {/* Engagement Popup Overlay (Teacher Only) */}
                     {isTeacher && showEngagement && (
@@ -3444,6 +3439,52 @@ const SessionView: React.FC = () => {
                             </div>
                         )}
                     </div>
+                        </>
+                    ) : (
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                            <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', padding: '1.5rem', gap: '1.5rem' }}>
+                                <EngagementControls sessionCode={code || ''} user={user} />
+
+                                {activePoll && (
+                                    <div className="anim-slide-up">
+                                        <PollCard poll={activePoll} isTeacher={false} onClose={() => setActivePoll(null)} />
+                                    </div>
+                                )}
+
+                                <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--color-primary-light)' }}>Got a Question?</h3>
+                                    <QuestionInput sessionId={session?._id || ''} sessionStatus={session?.status || 'active'} />
+                                    
+                                    <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: 'var(--color-text-secondary)' }}>Recent Questions</h4>
+                                        {questions.length === 0 ? (
+                                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem 0' }}>No questions asked yet. Be the first!</p>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', paddingRight: '0.5rem', flex: 1, maxHeight: '400px' }}>
+                                                {questions.slice().reverse().map(q => (
+                                                   <div key={q._id} style={{ 
+                                                       background: 'rgba(255, 255, 255, 0.03)', 
+                                                       padding: '1.25rem', 
+                                                       borderRadius: '12px', 
+                                                       border: '1px solid rgba(255, 255, 255, 0.05)',
+                                                       borderLeft: q.teacherAnswer ? '4px solid #10b981' : '1px solid rgba(255, 255, 255, 0.05)',
+                                                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                   }}>
+                                                       <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-text-primary)', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{q.content}</p>
+                                                       {q.teacherAnswer && (
+                                                           <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.8rem 1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#10b981', marginTop: '0.75rem', whiteSpace: 'pre-wrap', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                               <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Teacher Response:</strong> {q.teacherAnswer}
+                                                           </div>
+                                                       )}
+                                                   </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* Right Column: Session Info & Participants (Fixed Width) */}
