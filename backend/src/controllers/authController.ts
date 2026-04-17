@@ -1,334 +1,133 @@
-import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
+import User from "../models/userModels";
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
-import User, { IUser } from '../models/User';
 
-// Augment express-serve-static-core
-declare module 'express-serve-static-core' {
-    interface Request {
-        user?: IUser;
-    }
-}
-
-// Generate JWT Token
-const generateToken = (id: string): string => {
-    const jwtSecret = process.env.JWT_SECRET;
-    const jwtExpire = process.env.JWT_EXPIRE || '7d';
-
-    if (!jwtSecret) {
-        throw new Error('JWT_SECRET is not defined');
+//user registration----------
+export const registerUser = async (req: Request, res: Response) => {
+  const { email, password, name, role }: { email: string; password: string; name: string; role: string } = req.body;
+  try {
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    return jwt.sign({ id }, jwtSecret, {
-        expiresIn: jwtExpire as any
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      email: email,
+      password: hashedPassword,
+      name: name,
+      role: role
     });
+    await newUser.save();
+
+    res.json({ message: "Registration successful" });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
-export const register = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
-
-        const { name, email, password, role } = req.body;
-
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            res.status(400).json({
-                success: false,
-                message: 'User already exists with this email'
-            });
-            return;
-        }
-
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role
-        });
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during registration'
-        });
+// User login---------------
+export const loginUser = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "invalid credentials" });
     }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "invalid credentials" });
+    }
+    const token = jwt.sign(
+      { email: user.email, name: user.name, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1h" }
+    );
+    res.json({
+      message: "Login successful",
+      token: token,
+      user: {
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-export const login = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
 
-        const { email, password } = req.body;
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+export const googleLogin = async (req: Request, res: Response) => {
+  const { token, role } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
 
-        // Check if user exists (include password field)
-        const user = await User.findOne({ email }).select('+password');
-        if (!user) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Check if password matches
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during login'
-        });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ message: "Invalid Google token" });
     }
-};
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
-export const getMe = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
+    const { email, name } = payload;
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+    // If user doesn't exist, create new user with Google info. If role is not provided for new user, return response indicating role selection is needed.
 
-        res.status(200).json({
-            success: true,
-            user: {
-                id: req.user._id,
-                name: req.user.name,
-                email: req.user.email,
-                role: req.user.role
-            }
+    if (!user) {
+      // If no role provided for new user, don't create yet - ask for role selection
+      if (!role) {
+        return res.json({
+          message: "New user - role selection required",
+          isNewUser: true,
+          token: null,
+          user: null
         });
-    } catch (error) {
-        console.error('GetMe error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      }
+
+      isNewUser = true;
+      const randomPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+
+      user = new User({
+        email: email,
+        password: randomPassword,
+        name: name,
+        role: role
+      });
+      await user.save();
     }
-};
 
-// @desc    Update user details
-// @route   PUT /api/auth/updatedetails
-// @access  Private
-export const updateDetails = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
+    // Generate JWT token
+    const jwtToken = jwt.sign(
+      { email: user.email, name: user.name, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1h" }
+    );
 
-        const { name, email } = req.body;
+    res.json({
+      message: "Google Login successful",
+      token: jwtToken,
+      user: {
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      isNewUser: isNewUser// If user was just created, frontend can check isNewUser flag to know if it needs to ask for role selection
+    });
 
-        // If email is changing, check for duplicates
-        if (email && email !== req.user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Email is already in use'
-                });
-                return;
-            }
-        }
-
-        const user = await User.findByIdAndUpdate(
-            req.user.id,
-            { name, email },
-            { new: true, runValidators: true }
-        );
-
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-            return;
-        }
-
-        res.status(200).json({
-            success: true,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('UpdateDetails error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during update'
-        });
-    }
-};
-
-// @desc    Login with Google
-// @route   POST /api/auth/google
-// @access  Public
-export const googleLogin = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { token, role } = req.body;
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-        // Verify the token
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-
-        const payload = ticket.getPayload();
-        if (!payload) {
-            res.status(400).json({ success: false, message: 'Invalid Google Token' });
-            return;
-        }
-
-        const { email, name, sub: googleId, picture } = payload;
-
-        if (!email) {
-            res.status(400).json({ success: false, message: 'Google token missing email' });
-            return;
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ email });
-
-        if (!user) {
-            // Register new user
-            const userRole = role === 'Teacher' || role === 'Student' ? role : 'Student';
-
-            user = await User.create({
-                name,
-                email,
-                googleId,
-                role: userRole,
-                avatar: picture
-            });
-        } else {
-            // If user exists but has no googleId or avatar, update it
-            let updated = false;
-            if (!user.googleId) {
-                user.googleId = googleId;
-                updated = true;
-            }
-            if (picture && !user.avatar) {
-                user.avatar = picture;
-                updated = true;
-            }
-            if (updated) await user.save();
-        }
-
-        // Generate token
-        const appToken = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token: appToken,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatar: user.avatar
-            }
-        });
-
-    } catch (error) {
-        console.error('Google login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during Google login'
-        });
-    }
-};
-
-// @desc    Get top users by points
-// @route   GET /api/auth/leaderboard
-// @access  Public
-export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const users = await User.find({ role: 'Student' })
-            .select('name points')
-            .sort({ points: -1 })
-            .limit(10);
-
-        res.status(200).json({
-            success: true,
-            data: users
-        });
-    } catch (error) {
-        console.error('Leaderboard error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching leaderboard'
-        });
-    }
+  } catch (error) {
+    console.error("Google Login error:", error);
+    res.status(500).json({ message: "Server error during Google login" });
+  }
 };

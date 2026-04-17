@@ -1,95 +1,266 @@
-# Vi-SlideS
+# Vi-SlideS Documentation
 
-Vi-SlideS is an AI-powered, question-driven classroom platform that helps teachers adapt live teaching based on student questions, sentiment, and cognitive understanding.
+Documentation for the **Vi-SlideS real-time classroom interaction platform**.  
+View full documentation: https://snigdha257.github.io/Vi-SlideS-basic/
 
-## 🚀 Phase 1 Features: Authentication & Setup
+---
 
-The project is currently in Phase 1, offering a fully functional MERN stack foundation with:
+## Quick Links
 
-- **Authentication System**: Secure JWT-based login and registration.
-- **Role-Based Access**: Specialized dashboards for Teachers and Students.
-- **Premium UI**: Modern, responsive interface with glassmorphism design.
-- **Backend Architecture**: Scalable Express.js + TypeScript server.
-- **Database**: MongoDB Atlas integration for cloud data storage.
+* [Setup Guide](https://snigdha257.github.io/Vi-SlideS-basic/SETUP_GUIDE)
+* [API Documentation](https://snigdha257.github.io/Vi-SlideS-basic/API_DOCUMENTATION)
+* [Architecture](https://snigdha257.github.io/Vi-SlideS-basic/ARCHITECTURE)
+* [Backend Services](https://snigdha257.github.io/Vi-SlideS-basic/BACKEND_SERVICES)
+* [Frontend Components](https://snigdha257.github.io/Vi-SlideS-basic/FRONTEND_COMPONENTS)
+* [Project Overview](https://snigdha257.github.io/Vi-SlideS-basic/)
 
-## 🛠️ Tech Stack
+---
 
-- **Frontend**: React, TypeScript, Vite, Vanilla CSS (Premium Design)
-- **Backend**: Node.js, Express, TypeScript, JWT
-- **Database**: MongoDB Atlas
-
-## 🚦 Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- VS Code
-- MongoDB Atlas Account
-
-### 1. Clone & Setup
+## Getting Started
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd vi-slides
+# Backend
+cd Backend && npm run dev
+
+# Frontend
+cd Frontend && npm run dev
 ```
 
-### 2. Backend Setup
+Open http://localhost:5173
+
+---
+
+## Tech Stack
+
+* **Frontend:** React 19, Vite, Socket.IO Client, Google OAuth
+* **Backend:** Node.js, Express, Socket.IO
+* **Database:** MongoDB
+* **Auth:** JWT + Google OAuth with role-based redirection
+* **AI:** Groq API (LLaMA 3.3 70B)
+
+---
+
+## Project Structure
+
+```
+Backend/
+  controllers/
+  services/
+  models/
+  routes/
+  middleware/
+  socketServer.ts
+
+Frontend/
+  components/
+    Login.tsx
+    Register.tsx
+    Session.tsx
+    RoleSelector.tsx
+  hooks/
+  services/
+  styles/
+```
+
+---
+
+## Key Features
+
+### Core Classroom Features
+* **Real-time Q&A** - Live question submission and responses
+* **AI-Powered Answers** - Groq API integration for automated responses
+* **QR Code Access** - Public question form via QR scanning
+* **Live Student Tracking** - Real-time attendance and participation
+
+### New Enhanced Features
+* **Focus Check** - Real-time attendance verification with timer
+* **Mood Check** - Student sentiment tracking (Understood/Okay/Confused)
+* **Theme Toggle** - Dark/Light mode with professional styling
+* **Enhanced Google Auth** - Role-based authentication with smart redirection
+* **Professional UI** - Enhanced animations, gradients, and modern design
+
+### Session Management
+* **Session Controls** - Pause/Resume/End functionality
+* **Student Roster** - Live participant tracking
+* **Session Analytics** - PDF export with comprehensive summaries
+* **Multi-modal Input** - Web app + QR code support
+
+---
+
+## API Basics
+
+* Base URL: `http://localhost:5000/api`
+* Auth: JWT in `Authorization` header
+* Real-time: Socket.IO
+
+**Core Endpoints:**
+
+```
+POST /auth/register
+POST /auth/login
+POST /session/create-session
+GET  /session/:code
+```
+
+📖 Full API → [API_DOCUMENTATION](https://snigdha257.github.io/Vi-SlideS-basic/API_DOCUMENTATION)
+
+---
+
+## 🔄 Quick Workflow
+
+1. **Authentication** - Login via email/password or Google OAuth
+2. **Session Creation** - Teacher creates session with unique code
+3. **Student Access** - Students join via code, QR, or Google Auth
+4. **Real-time Interaction** - Questions, Focus/Mood checks, answers
+5. **Session Management** - Pause, resume, track participation
+6. **Session Completion** - End session, generate PDF summary
+
+---
+
+## New Features v2.0
+
+### Focus Check System
+- **Real-time Attendance** - Timer-based presence verification
+- **Smart Detection** - Auto-mark absent if no response
+- **Live Analytics** - Present/Absent counts with participant lists
+- **Teacher Controls** - Start/End focus checks with detailed reporting
+
+### Mood Check System  
+- **Student Sentiment** - Track understanding levels (Understood/Okay/Confused)
+- **Real-time Feedback** - Live mood distribution charts
+- **Class Insights** - Immediate feedback on content comprehension
+- **Historical Data** - Mood trends across sessions
+
+### Enhanced Authentication
+- **Google OAuth Integration** - Seamless Google account login
+- **Role-based Redirection** - Smart routing to appropriate dashboards
+- **New User Detection** - Automatic role selection for first-time users
+- **Existing User Recognition** - Direct dashboard access for returning users
+
+### Professional UI/UX
+- **Theme Toggle** - Dark/Light mode with persistent preferences
+- **Modern Design** - Professional gradients, animations, and transitions
+- **Enhanced Accessibility** - Better contrast, responsive layouts
+- **Improved Interactions** - Smooth hover states and micro-animations
+
+---
+
+## 🧩 Core Modules
+
+### Authentication
+
+* Email/password + Google OAuth
+* JWT-based auth (1 hour expiry)
+* Role-based access (Teacher / Student)
+
+### Sessions
+
+* Unique 6-char session codes
+* Real-time student list
+* Pause / resume / end session
+
+### Q&A System
+
+* Live question submission
+* AI + manual answers
+* QR public form support
+
+### AI Integration
+
+* Groq API (LLaMA 3.3 70B)
+* Fast, concise responses
+* Teacher-controlled usage
+
+---
+
+## 🗄 Database Models
+
+**User**
+
+```
+name, email, password, role, createdAt
+```
+
+**Session**
+
+```
+code, name, createdBy, status,
+students[], questions[]
+```
+
+---
+
+## 🔐 Security
+
+* Bcrypt password hashing
+* JWT authentication
+* Input validation
+* CORS protection
+
+**Planned:**
+
+* Rate limiting
+* Helmet.js
+* API versioning
+
+---
+
+## 📈 Performance
+
+* In-memory session cache
+* MongoDB indexing
+* Socket.IO room-based events
+
+---
+
+## 🧪 Development
 
 ```bash
-cd backend
-npm install
+# Run both servers
+cd Backend && npm run dev
+cd Frontend && npm run dev
 ```
 
-Create a `.env` file in the `backend` directory (copy from `.env.example`):
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/vi-slides?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-key
-JWT_EXPIRE=7d
-NODE_ENV=development
-```
-*Note: You must replace `MONGODB_URI` with your actual MongoDB Atlas connection string.*
+---
 
-Start the backend server:
-```bash
-npm run dev
-```
+## 🚢 Deployment Checklist
 
-### 3. Frontend Setup
+* Configure `.env`
+* Setup MongoDB Atlas
+* Update CORS origins
+* Add logging + monitoring
+* Verify API keys (Google, Groq)
 
-Open a new terminal:
-```bash
-cd frontend
-npm install
-```
+---
 
-Create a `.env` file in the `frontend` directory:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+## 🧠 Reading Guide
 
-Start the frontend development server:
-```bash
-npm run dev
-```
+* **Beginner:** Setup → Architecture
+* **Frontend:** Frontend Components + API
+* **Backend:** Backend Services + API
+* **Deployment:** Architecture
 
-### 4. Verification
+---
 
-- Open your browser to `http://localhost:5173`
-- Register a new account (Select Teacher or Student role)
-- You should be redirected to the secure dashboard
-- Check MongoDB Atlas to see the created user document
+## ❗ Common Issues
 
-## 📝 Roadmap
+* **MongoDB error:** Check URI
+* **Port in use:** Kill process
+* **CORS issues:** Verify origin
+* **Socket errors:** Check backend running
 
-- [x] **Phase 1: Project Setup & Authentication**
-- [ ] Phase 2: Class Session Management
-- [ ] Phase 3: Question Submission System
-- [ ] Phase 4: AI Analysis & Integration
-- [ ] Phase 5: Teacher Insights Dashboard
-- [ ] Phase 6: History & Reports
+---
+
+## Version
+
+| Version | Date       | Notes           |
+| ------- | ---------- | --------------- |
+| 2.0     | 2026-04-16 | Enhanced with Focus/Mood checks, Google Auth, Theme Toggle |
+| 1.0     | 2026-03-29 | Initial release |
+
+---
 
 ## License
 
-MIT License
+Part of the Vi-SlideS project.
+
