@@ -1,334 +1,90 @@
-import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import User, { IUser } from '../models/User';
+import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import User from "../models/User";
 
-// Augment express-serve-static-core
-declare module 'express-serve-static-core' {
-    interface Request {
-        user?: IUser;
-    }
-}
-
-// Generate JWT Token
-const generateToken = (id: string): string => {
-    const jwtSecret = process.env.JWT_SECRET;
-    const jwtExpire = process.env.JWT_EXPIRE || '7d';
-
-    if (!jwtSecret) {
-        throw new Error('JWT_SECRET is not defined');
+// GOOGLE AUTH CALLBACK
+export const googleAuth = async (req: Request, res: Response) => {
+  try {
+    const { credential, role } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({ message: "Missing credential" });
     }
 
-    return jwt.sign({ id }, jwtSecret, {
-        expiresIn: jwtExpire as any
+    // Decode Google JWT token (it comes in 3 parts separated by dots)
+    // Step 1: Split by '.' to get [header, payload, signature]
+    // Step 2: Take middle part (payload) which has user info
+    // Step 3: Decode from base64 to readable text
+    // Step 4: Convert text to JavaScript object
+    const parts = credential.split('.');
+    const payload = parts[1];
+    const decodedText = Buffer.from(payload, 'base64').toString();
+    const decoded = JSON.parse(decodedText);
+    
+    // Extract user information from decoded token
+    const googleId = decoded.sub;  // Google's unique ID for this user
+    const email = decoded.email;
+    const name = decoded.name;
+    const picture = decoded.picture;
+
+    // Check if user exists
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // User exists - use their existing role
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(200).json({
+        message: "Authentication successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          picture: user.picture,
+        },
+      });
+    }
+
+    // New user - role is required
+    if (!role) {
+      return res.status(400).json({ message: "Role is required for new users" });
+    }
+
+    // Create new user with selected role
+    user = await User.create({
+      googleId,
+      email,
+      name,
+      picture,
+      role,
     });
-};
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
-export const register = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" }
+    );
 
-        const { name, email, password, role } = req.body;
-
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            res.status(400).json({
-                success: false,
-                message: 'User already exists with this email'
-            });
-            return;
-        }
-
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role
-        });
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during registration'
-        });
-    }
-};
-
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-export const login = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
-
-        const { email, password } = req.body;
-
-        // Check if user exists (include password field)
-        const user = await User.findOne({ email }).select('+password');
-        if (!user) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Check if password matches
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during login'
-        });
-    }
-};
-
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
-export const getMe = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
-
-        res.status(200).json({
-            success: true,
-            user: {
-                id: req.user._id,
-                name: req.user.name,
-                email: req.user.email,
-                role: req.user.role
-            }
-        });
-    } catch (error) {
-        console.error('GetMe error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
-
-// @desc    Update user details
-// @route   PUT /api/auth/updatedetails
-// @access  Private
-export const updateDetails = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
-
-        const { name, email } = req.body;
-
-        // If email is changing, check for duplicates
-        if (email && email !== req.user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Email is already in use'
-                });
-                return;
-            }
-        }
-
-        const user = await User.findByIdAndUpdate(
-            req.user.id,
-            { name, email },
-            { new: true, runValidators: true }
-        );
-
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-            return;
-        }
-
-        res.status(200).json({
-            success: true,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('UpdateDetails error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during update'
-        });
-    }
-};
-
-// @desc    Login with Google
-// @route   POST /api/auth/google
-// @access  Public
-export const googleLogin = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { token, role } = req.body;
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-        // Verify the token
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-
-        const payload = ticket.getPayload();
-        if (!payload) {
-            res.status(400).json({ success: false, message: 'Invalid Google Token' });
-            return;
-        }
-
-        const { email, name, sub: googleId, picture } = payload;
-
-        if (!email) {
-            res.status(400).json({ success: false, message: 'Google token missing email' });
-            return;
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ email });
-
-        if (!user) {
-            // Register new user
-            const userRole = role === 'Teacher' || role === 'Student' ? role : 'Student';
-
-            user = await User.create({
-                name,
-                email,
-                googleId,
-                role: userRole,
-                avatar: picture
-            });
-        } else {
-            // If user exists but has no googleId or avatar, update it
-            let updated = false;
-            if (!user.googleId) {
-                user.googleId = googleId;
-                updated = true;
-            }
-            if (picture && !user.avatar) {
-                user.avatar = picture;
-                updated = true;
-            }
-            if (updated) await user.save();
-        }
-
-        // Generate token
-        const appToken = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token: appToken,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatar: user.avatar
-            }
-        });
-
-    } catch (error) {
-        console.error('Google login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during Google login'
-        });
-    }
-};
-
-// @desc    Get top users by points
-// @route   GET /api/auth/leaderboard
-// @access  Public
-export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const users = await User.find({ role: 'Student' })
-            .select('name points')
-            .sort({ points: -1 })
-            .limit(10);
-
-        res.status(200).json({
-            success: true,
-            data: users
-        });
-    } catch (error) {
-        console.error('Leaderboard error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching leaderboard'
-        });
-    }
+    res.status(200).json({
+      message: "Authentication successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        picture: user.picture,
+      },
+    });
+  } catch (error) {
+    console.error("GOOGLE AUTH ERROR:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
 };

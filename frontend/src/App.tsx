@@ -1,81 +1,24 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import SessionView from './pages/SessionView';
-import SessionSummary from './pages/SessionSummary';
-import Assignments from './pages/Assignments';
-import AssignmentDetails from './pages/AssignmentDetails';
-import GuestJoinForm from './pages/GuestJoinForm';
-import QueryPPTView from './pages/QueryPPTView';
-import QueryAsk from './pages/QueryAsk';
+import { Routes, Route, Navigate } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import Login from "./pages/Login.tsx";
+import TeacherDashboard from "./pages/TeacherDashboard.tsx";
+import StudentDashboard from "./pages/StudentDashboard.tsx";
 
-const App: React.FC = () => {
-    return (
-        <AuthProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    {/* Public route for guest join and query ask */}
-                    <Route path="/join/:code" element={<GuestJoinForm />} />
-                    <Route path="/ask/:code" element={<QueryAsk />} />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code"
-                        element={
-                            <ProtectedRoute>
-                                <SessionView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code/summary"
-                        element={
-                            <ProtectedRoute>
-                                <SessionSummary />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments"
-                        element={
-                            <ProtectedRoute>
-                                <Assignments />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments/:id"
-                        element={
-                            <ProtectedRoute>
-                                <AssignmentDetails />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/query-mode"
-                        element={
-                            <ProtectedRoute>
-                                <QueryPPTView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-            </Router>
-        </AuthProvider>
-    );
-};
+// Google OAuth Client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID = "99897971611-icr5n008bo33otl3f8jpabuvr477g793.apps.googleusercontent.com";
+
+function App() {
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+      </Routes>
+    </GoogleOAuthProvider>
+  );
+}
 
 export default App;
