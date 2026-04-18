@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700;900&display=swap');
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0; padding: 0;
+  height: 100vh; width: 100vw;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(145deg, #0f0f1b 0%, #1a1a2e 100%);
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* LAYOUT HELPERS */
+.full-page { height: 100vh; width: 100vw; display: flex; flex-direction: column; }
+.centered-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+/* THE PREMIUM GLASS CARD */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px);
+  border-radius: 40px;
+  padding: 40px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 500px; /* Perfectly contained width */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* MODERN INPUTS & TEXTAREAS */
+input, textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0, 210, 255, 0.3);
+  border-radius: 15px;
+  padding: 15px;
+  color: white;
+  font-size: 18px;
+  outline: none;
+  transition: all 0.3s;
+  font-family: inherit;
+  margin-bottom: 20px;
+}
+input:focus, textarea:focus { border-color: #00d2ff; box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
+textarea { resize: none; height: 120px; }
+
+/* 3D PILL BUTTONS */
+.btn-3d {
+  all: unset;
+  display: inline-block;
+  width: 100%; /* Forces button to stay inside the box */
+  padding: 15px 0;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: white;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.1s;
+  transform: translateY(-5px);
+  text-align: center;
+}
+.btn-teacher { background: #00d2ff; box-shadow: 0 6px 0 #008ba3; }
+.btn-student { background: #6c5ce7; box-shadow: 0 6px 0 #4834d4; }
+.btn-logout  { background: #ff4757; box-shadow: 0 6px 0 #ff1f34; }
+
+.btn-3d:active { transform: translateY(0px); box-shadow: none; }
+
+/* NAV BAR */
+.navbar {
+  height: 80px; padding: 0 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
