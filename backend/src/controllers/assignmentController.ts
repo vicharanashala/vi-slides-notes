@@ -7,7 +7,7 @@ import Submission from '../models/Submission';
 // @access  Private (Teacher only)
 export const createAssignment = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { title, description, maxMarks, deadline } = req.body;
+        const { title, description, maxMarks, deadline, subjectId } = req.body;
 
         // Validate teacher role
         if (req.user?.role?.toLowerCase() !== 'teacher') {
@@ -19,6 +19,7 @@ export const createAssignment = async (req: Request, res: Response): Promise<voi
             title,
             description,
             teacher: req.user._id,
+            subject: subjectId || null,
             maxMarks,
             deadline: new Date(deadline)
         });

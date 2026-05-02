@@ -4,6 +4,7 @@ export interface IAssignment extends Document {
     title: string;
     description: string;
     teacher: mongoose.Types.ObjectId;
+    subject?: mongoose.Types.ObjectId;
     maxMarks: number;
     deadline: Date;
     createdAt: Date;
@@ -11,36 +12,13 @@ export interface IAssignment extends Document {
 }
 
 const AssignmentSchema = new Schema<IAssignment>({
-    title: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    teacher: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    maxMarks: {
-        type: Number,
-        required: true,
-        min: 1
-    },
-    deadline: {
-        type: Date,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['active', 'closed'],
-        default: 'active'
-    }
-}, {
-    timestamps: true
-});
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true },
+    teacher: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    subject: { type: Schema.Types.ObjectId, ref: 'Subject', default: null },
+    maxMarks: { type: Number, required: true, min: 1 },
+    deadline: { type: Date, required: true },
+    status: { type: String, enum: ['active', 'closed'], default: 'active' }
+}, { timestamps: true });
 
 export default mongoose.model<IAssignment>('Assignment', AssignmentSchema);

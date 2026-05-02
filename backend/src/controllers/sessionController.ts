@@ -61,7 +61,7 @@ const generateSessionCode = (length: number = 6): string => {
 // @access  Private (Teacher only)
 export const createSession = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { title, description } = req.body;
+        const { title, description, subjectId } = req.body;
 
         // Generate unique code
         let code = generateSessionCode();
@@ -78,6 +78,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
             description,
             code,
             teacher: req.user?._id,
+            subject: subjectId || null,
             status: 'active'
         });
 

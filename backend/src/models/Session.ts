@@ -3,10 +3,11 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface ISession extends Document {
     title: string;
     description?: string;
-    code: string; // Unique 6-character code
-    qrCodeDataUrl?: string; // Base64 QR code image
-    joinUrl?: string; // The URL encoded in the QR code
+    code: string;
+    qrCodeDataUrl?: string;
+    joinUrl?: string;
     teacher: mongoose.Types.ObjectId;
+    subject?: mongoose.Types.ObjectId;
     students: mongoose.Types.ObjectId[];
     attendance: {
         student: mongoose.Types.ObjectId;
@@ -42,21 +43,19 @@ const sessionSchema = new Schema<ISession>({
         uppercase: true,
         trim: true
     },
-    qrCodeDataUrl: {
-        type: String
-    },
-    joinUrl: {
-        type: String
-    },
+    qrCodeDataUrl: { type: String },
+    joinUrl: { type: String },
     teacher: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    students: [{
+    subject: {
         type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+        ref: 'Subject',
+        default: null
+    },
+    students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     attendance: [{
         student: { type: Schema.Types.ObjectId, ref: 'User' },
         name: String,
@@ -69,26 +68,12 @@ const sessionSchema = new Schema<ISession>({
         enum: ['active', 'inactive', 'ended', 'paused'],
         default: 'active'
     },
-    isQuerySession: {
-        type: Boolean,
-        default: false
-    },
-    customQueryUrl: {
-        type: String,
-        trim: true
-    },
-    endedAt: {
-        type: Date
-    },
-    moodSummary: {
-        type: String
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+    isQuerySession: { type: Boolean, default: false },
+    customQueryUrl: { type: String, trim: true },
+    endedAt: { type: Date },
+    moodSummary: { type: String },
+    createdAt: { type: Date, default: Date.now }
 });
 
 const Session = mongoose.model<ISession>('Session', sessionSchema);
-
 export default Session;

@@ -9,6 +9,7 @@ export interface Assignment {
         name: string;
         email: string;
     };
+    subject?: string | { _id: string; name: string };
     maxMarks: number;
     deadline: string;
     status: 'active' | 'closed';
@@ -22,6 +23,7 @@ export const assignmentService = {
         description: string;
         maxMarks: number;
         deadline: string;
+        subjectId?: string;
     }): Promise<{ success: boolean; data: Assignment }> => {
         const response = await api.post('/assignments', data);
         return response.data;

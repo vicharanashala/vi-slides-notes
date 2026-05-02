@@ -11,35 +11,29 @@ import pollRoutes from './routes/poll';
 import assignmentRoutes from './routes/assignment';
 import submissionRoutes from './routes/submission';
 import guestRoutes from './routes/guest';
+import subjectRoutes from './routes/subject';
 
-// Load environment variables
 dotenv.config();
 
-// Initialize express app
 const app: Application = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io
 initSocket(server);
-
-// Connect to database
 connectDB();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
-app.use('/api/guest', guestRoutes); // Public routes for guest join
+app.use('/api/guest', guestRoutes);
+app.use('/api/subjects', subjectRoutes);
 
-// Health check route
 app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({
         success: true,
@@ -48,17 +42,11 @@ app.get('/api/health', (req: Request, res: Response) => {
     });
 });
 
-// 404 handler
 app.use((req: Request, res: Response) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
+    res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-
 server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);

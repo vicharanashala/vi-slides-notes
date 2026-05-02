@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { sessionService } from '../services/sessionService';
+import { subjectService, Subject } from '../services/subjectService';
 
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -28,6 +29,7 @@ const Dashboard: React.FC = () => {
     const [showQRModal, setShowQRModal] = useState(false);
     const [activeSession, setActiveSession] = useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([]);
 
     useEffect(() => {
         const fetchActiveSession = async () => {
@@ -65,6 +67,19 @@ const Dashboard: React.FC = () => {
 
         fetchActiveSession();
         fetchPastSessions();
+
+        // Fetch enrolled subjects for student dashboard
+        const fetchEnrolledSubjects = async () => {
+            if (user?.role === 'Student') {
+                try {
+                    const res = await subjectService.getEnrolledSubjects();
+                    if (res.success) setEnrolledSubjects(res.data);
+                } catch (err) {
+                    console.error('Error fetching enrolled subjects:', err);
+                }
+            }
+        };
+        fetchEnrolledSubjects();
 
         // For teachers, also fetch active session for QR code display
         const fetchActiveSessionForQR = async () => {
@@ -298,6 +313,11 @@ const Dashboard: React.FC = () => {
                                 <p className="text-muted mt-1">Create and grade student assignments.</p>
                                 <button onClick={() => navigate('/assignments')} className="btn btn-primary mt-2">Manage Assignments</button>
                             </div>
+                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 100%)' }}>
+                                <h3>🎓 My Subjects</h3>
+                                <p className="text-muted mt-1">Manage subjects, sessions, and student enrollment.</p>
+                                <button onClick={() => navigate('/subjects')} className="btn btn-primary mt-2">Manage Subjects</button>
+                            </div>
 
                         </>
                     ) : (
@@ -323,6 +343,11 @@ const Dashboard: React.FC = () => {
                                 <p className="text-muted mt-1">View and submit your assignments.</p>
                                 <button onClick={() => navigate('/assignments')} className="btn btn-primary mt-2">View Assignments</button>
                             </div>
+                            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 100%)' }}>
+                                <h3>🎓 My Subjects</h3>
+                                <p className="text-muted mt-1">Browse and join subjects taught by your teachers.</p>
+                                <button onClick={() => navigate('/subjects')} className="btn btn-primary mt-2">Browse Subjects</button>
+                            </div>
                             <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0) 100%)' }}>
                                 <h3>🎓 Certificates</h3>
                                 <p className="text-muted mt-1">View and download your participation certificates.</p>
@@ -331,6 +356,49 @@ const Dashboard: React.FC = () => {
                         </>
                     )}
                 </div>
+
+                {/* Enrolled Subjects - Ongoing Sessions (Student only) */}
+                {user?.role === 'Student' && enrolledSubjects.length > 0 && (
+                    <div style={{ marginTop: '2rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text)', marginBottom: '1rem' }}>
+                            🎓 My Subjects
+                        </h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {enrolledSubjects.map(sub => (
+                                <div key={sub._id} className="glass-card" style={{ padding: '1.25rem', cursor: 'pointer' }}
+                                    onClick={() => navigate(`/subjects/${sub._id}`)}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>{sub.name}</h3>
+                                            <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                                by {(sub.teacher as any)?.name}
+                                            </p>
+                                        </div>
+                                        {sub.ongoingSession && (
+                                            <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
+                                                🟢 LIVE
+                                            </span>
+                                        )}
+                                    </div>
+                                    {sub.ongoingSession ? (
+                                        <div>
+                                            <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                                Session: <strong>{sub.ongoingSession.title}</strong>
+                                            </p>
+                                            <button
+                                                onClick={e => { e.stopPropagation(); navigate(`/subjects/${sub._id}`); }}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                                                Join Session →
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No live session right now</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Certificates Modal */}
                 {
