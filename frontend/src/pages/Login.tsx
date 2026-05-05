@@ -234,7 +234,7 @@ export default function Login() {
 const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    background: "linear-gradient(135deg, #427AB5 0%, #406AAF 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -313,7 +313,7 @@ const s: Record<string, React.CSSProperties> = {
     width: "20px",
     height: "20px",
     border: "3px solid #e5e7eb",
-    borderTop: "3px solid #667eea",
+    borderTop: "3px solid #427AB5",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
@@ -378,7 +378,7 @@ const s: Record<string, React.CSSProperties> = {
     background: "#fff",
   },
   roleCardSelected: {
-    border: "2px solid #667eea",
+    border: "2px solid #427AB5",
     background: "linear-gradient(135deg, #f3f4ff 0%, #e8eaff 100%)",
     transform: "scale(1.02)",
   },
@@ -405,7 +405,7 @@ const s: Record<string, React.CSSProperties> = {
     width: "24px",
     height: "24px",
     borderRadius: "50%",
-    background: "#667eea",
+    background: "#427AB5",
     color: "#fff",
     display: "flex",
     alignItems: "center",
@@ -415,7 +415,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   continueBtn: {
     width: "100%",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    background: "linear-gradient(135deg, #427AB5 0%, #406AAF 100%)",
     color: "#fff",
     border: "none",
     borderRadius: "12px",

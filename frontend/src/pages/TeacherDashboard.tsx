@@ -70,6 +70,10 @@ export default function TeacherDashboard() {
       setSessionId(res.data.session._id);
       setSessionStatus("waiting");
       socket.emit("join-room", res.data.session._id);
+      
+      // Auto-click Begin button - set session to active immediately
+      await axios.patch(`http://localhost:5000/api/session/${res.data.session._id}/status`, { status: "active" }, { headers: { Authorization: `Bearer ${token}` } });
+      setSessionStatus("active");
     } catch { alert("Unable to create session. Please try again."); }
     finally { setLoading(false); }
   };
@@ -195,22 +199,22 @@ export default function TeacherDashboard() {
               </div>
               <div style={s.controlButtons}>
                 <button 
-                  style={{ ...s.controlBtn, ...s.startBtn, opacity: sessionStatus === "active" || sessionStatus === "ended" ? 0.4 : 1 }}
+                  style={{ ...s.controlBtn, ...s.startBtn, opacity: sessionStatus === "paused" ? 1 : 0.4 }}
                   onClick={() => updateStatus("active")} 
-                  disabled={sessionStatus === "active" || sessionStatus === "ended"}>
-                  ▶ Begin
+                  disabled={sessionStatus !== "paused"}>
+                  ▶ Resume
                 </button>
                 <button 
                   style={{ ...s.controlBtn, ...s.pauseBtn, opacity: sessionStatus !== "active" ? 0.4 : 1 }}
                   onClick={() => updateStatus("paused")} 
                   disabled={sessionStatus !== "active"}>
-                  ⏸ Hold
+                  ⏸ Pause
                 </button>
                 <button 
                   style={{ ...s.controlBtn, ...s.endBtn, opacity: sessionStatus === "ended" ? 0.4 : 1 }}
                   onClick={() => updateStatus("ended")} 
                   disabled={sessionStatus === "ended"}>
-                  ⏹ Close
+                  ⏹ End Session
                 </button>
               </div>
             </div>
@@ -485,7 +489,7 @@ export default function TeacherDashboard() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", fontFamily: "'Inter', sans-serif" },
+  page: { minHeight: "100vh", background: "linear-gradient(135deg, #427AB5 0%, #406AAF 100%)", fontFamily: "'Inter', sans-serif" },
   header: { background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(0,0,0,0.1)", padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 1001, boxShadow: "0 2px 20px rgba(0,0,0,0.1)" },
   headerLeft: { display: "flex", alignItems: "center", gap: "12px" },
   brandIcon: { fontSize: "32px" },
@@ -498,7 +502,7 @@ const s: Record<string, React.CSSProperties> = {
   statusBadge: { borderRadius: "20px", padding: "6px 14px", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" },
   statusDot: { fontSize: "10px" },
   profileMenu: { display: "flex", alignItems: "center", gap: "10px" },
-  avatar: { width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "16px" },
+  avatar: { width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #427AB5 0%, #406AAF 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "16px" },
   logoutLink: { background: "transparent", border: "2px solid #e5e7eb", color: "#374151", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, transition: "all 0.2s" },
   container: { padding: "40px 32px", maxWidth: "1400px", margin: "0 auto" },
   emptyState: { display: "flex", flexDirection: "column", gap: "32px" },
@@ -506,7 +510,7 @@ const s: Record<string, React.CSSProperties> = {
   emptyIcon: { fontSize: "64px", marginBottom: "20px" },
   emptyTitle: { fontSize: "32px", fontWeight: 800, color: "#1f2937", marginBottom: "12px" },
   emptyText: { fontSize: "16px", color: "#6b7280", marginBottom: "32px", lineHeight: "1.6" },
-  createBtn: { background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: "16px 32px", fontSize: "16px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 15px rgba(102,126,234,0.4)", transition: "all 0.3s" },
+  createBtn: { background: "linear-gradient(135deg, #427AB5 0%, #406AAF 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: "16px 32px", fontSize: "16px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 15px rgba(66,122,181,0.4)", transition: "all 0.3s" },
   featureGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" },
   featureBox: { background: "rgba(255,255,255,0.95)", borderRadius: "16px", padding: "32px 24px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" },
   featureIcon: { fontSize: "40px", marginBottom: "16px" },
@@ -518,7 +522,7 @@ const s: Record<string, React.CSSProperties> = {
   controlInfo: { display: "flex", flexDirection: "column", gap: "4px" },
   controlTitle: { fontSize: "16px", fontWeight: 700, color: "#1f2937", margin: 0 },
   roomCodeDisplay: { fontSize: "14px", color: "#6b7280", marginTop: "4px" },
-  roomCodeValue: { color: "#667eea", fontSize: "18px", letterSpacing: "2px", fontWeight: 800 },
+  roomCodeValue: { color: "#427AB5", fontSize: "18px", letterSpacing: "2px", fontWeight: 800 },
   controlHint: { fontSize: "12px", color: "#f59e0b", marginTop: "4px", margin: 0 },
   controlButtons: { display: "flex", gap: "12px" },
   controlBtn: { border: "none", borderRadius: "10px", padding: "10px 24px", fontSize: "14px", fontWeight: 700, cursor: "pointer", color: "#fff", transition: "all 0.2s" },
