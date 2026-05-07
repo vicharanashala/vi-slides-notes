@@ -1,55 +1,37 @@
 {
-  "name": "vi-slides-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "Backend API for Vi-SlideS - AI-powered classroom platform",
+  "description": "Vi-SlideS Backend",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --exec tsx src/server.ts",
+    "start": "tsx src/server.ts"
   },
-  "keywords": [
-    "education",
-    "ai",
-    "classroom",
-    "questions"
-  ],
+  "keywords": [],
   "author": "",
-  "license": "MIT",
+  "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@types/socket.io": "^3.0.1",
     "bcryptjs": "^2.4.3",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "express-validator": "^7.0.1",
-    "google-auth-library": "^10.5.0",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.3",
-    "morgan": "^1.10.1",
-    "nodemailer": "^7.0.12",
-    "path": "^0.12.7",
-    "pdfkit": "^0.17.2",
-    "qrcode": "^1.5.4",
-    "socket.io": "^4.8.3"
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.6.3",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.17",
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "^20.10.6",
-    "@types/nodemailer": "^7.0.5",
-    "@types/pdfkit": "^0.17.4",
-    "@types/qrcode": "^1.5.6",
+    "@types/node": "^20.11.5",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.16",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.3"
   }
 }

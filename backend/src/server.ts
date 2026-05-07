@@ -1,68 +1,44 @@
-import express, { Application, Request, Response } from 'express';
-import http from 'http';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import connectDB from './config/database';
-import { initSocket } from './config/socket';
-import authRoutes from './routes/auth';
-import sessionRoutes from './routes/session';
-import questionRoutes from './routes/question';
-import pollRoutes from './routes/poll';
-import assignmentRoutes from './routes/assignment';
-import submissionRoutes from './routes/submission';
-import guestRoutes from './routes/guest';
+import express, { Request, Response } from "express";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Load environment variables
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-// Initialize express app
-const app: Application = express();
-const server = http.createServer(app);
+import cors from "cors";
+import passport from "passport";
+import connectDB from "./config/db.js";
+import { configurePassport } from "./config/passport.js";
+import authRoutes from "./routes/authRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js";
 
-// Initialize Socket.io
-initSocket(server);
+const app = express();
+const googleAuthEnabled = configurePassport();
 
-// Connect to database
-connectDB();
 
-// Middleware
+
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
+app.set("googleAuthEnabled", googleAuthEnabled);
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/sessions', sessionRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/polls', pollRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/submissions', submissionRoutes);
-app.use('/api/guest', guestRoutes); // Public routes for guest join
 
-// Health check route
-app.get('/api/health', (req: Request, res: Response) => {
-    res.status(200).json({
-        success: true,
-        message: 'Vi-SlideS API is running with Real-time support',
-        timestamp: new Date().toISOString()
-    });
+app.use("/api/auth", authRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/questions", questionRoutes);
+
+
+app.get("/", (_req: Request, res: Response) => {
+  res.json({ message: "Vi-SlideS Backend is running", googleAuthEnabled });
 });
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
+
+connectDB();
+
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => {
+  console.log(` Vi-SlideS server running on port ${PORT}`);
 });
-
-// Start server
-const PORT = process.env.PORT || 5000;
-
-server.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔌 Real-time Socket.io initialized`);
-});
-
-export default app;

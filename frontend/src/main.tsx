@@ -1,17 +1,16 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
+import App from './App'
 import './index.css'
 
-import { GoogleOAuthProvider } from '@react-oauth/google'
-import { ThemeProvider } from './contexts/ThemeContext.tsx'
+const rootElement = document.getElementById('root')
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
-            <ThemeProvider>
-                <App />
-            </ThemeProvider>
-        </GoogleOAuthProvider>
-    </React.StrictMode>,
+if (!rootElement) {
+  throw new Error('Root element not found')
+}
+
+ReactDOM.createRoot(rootElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 )

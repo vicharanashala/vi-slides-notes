@@ -1,334 +1,186 @@
-import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import User, { IUser } from '../models/User';
+import { Request, Response } from "express";
+import User, { IUser, UserRole } from "../models/userModel.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { AuthenticatedRequest } from "../middleware/auth.js";
 
-// Augment express-serve-static-core
-declare module 'express-serve-static-core' {
-    interface Request {
-        user?: IUser;
-    }
-}
+const JWT_SECRET = process.env.JWT_SECRET;
+const FRONTEND_AUTH_CALLBACK_URL = process.env.FRONTEND_AUTH_CALLBACK_URL || "http://localhost:5173/auth/callback";
 
-// Generate JWT Token
-const generateToken = (id: string): string => {
-    const jwtSecret = process.env.JWT_SECRET;
-    const jwtExpire = process.env.JWT_EXPIRE || '7d';
+const VALID_ROLES = new Set<UserRole>(["teacher", "student"]);
 
-    if (!jwtSecret) {
-        throw new Error('JWT_SECRET is not defined');
-    }
-
-    return jwt.sign({ id }, jwtSecret, {
-        expiresIn: jwtExpire as any
-    });
+const getJWTSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in .env");
+  }
+  return secret;
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+const isValidRole = (role: unknown): role is UserRole => {
+  return typeof role === "string" && VALID_ROLES.has(role as UserRole);
+};
+
+const signAuthToken = (user: IUser): string => {
+  return jwt.sign(
+    {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role ?? null,
+      rolePending: !user.role,
+    },
+    getJWTSecret(),
+    { expiresIn: "1d" }
+  );
+};
+
+const buildAuthResponse = (user: IUser, token: string) => ({
+  success: true,
+  token,
+  email: user.email,
+  role: user.role ?? null,
+  rolePending: !user.role,
+});
+
+const buildFrontendCallbackUrl = (params: Record<string, string>): string => {
+  const url = new URL(FRONTEND_AUTH_CALLBACK_URL);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return url.toString();
+};
+
+
 export const register = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
+  try {
+    const { email, password, role } = req.body;
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-        const { name, email, password, role } = req.body;
-
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            res.status(400).json({
-                success: false,
-                message: 'User already exists with this email'
-            });
-            return;
-        }
-
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role
-        });
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during registration'
-        });
+    if (!normalizedEmail || !password || !isValidRole(role)) {
+      res.status(400).json({ success: false, message: "Email, password and valid role are required" });
+      return;
     }
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      res.status(400).json({ success: false, message: "User already exists" });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      email: normalizedEmail,
+      password: hashedPassword,
+      role,
+      provider: "local",
+    });
+
+    const token = signAuthToken(user);
+
+    res.status(201).json(buildAuthResponse(user, token));
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 export const login = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // Check for validation errors
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({
-                success: false,
-                errors: errors.array()
-            });
-            return;
-        }
+  try {
+    const { email, password } = req.body;
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-        const { email, password } = req.body;
-
-        // Check if user exists (include password field)
-        const user = await User.findOne({ email }).select('+password');
-        if (!user) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Check if password matches
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-            return;
-        }
-
-        // Generate token
-        const token = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during login'
-        });
+    if (!normalizedEmail || !password) {
+      res.status(400).json({ success: false, message: "Email and password are required" });
+      return;
     }
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      res.status(400).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    if (!user.password) {
+      res.status(400).json({ success: false, message: "Use Google sign-in for this account" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      res.status(400).json({ success: false, message: "Invalid credentials" });
+      return;
+    }
+
+    const token = signAuthToken(user);
+
+    res.json(buildAuthResponse(user, token));
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
-export const getMe = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
+export const finalizeRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as AuthenticatedRequest).user?.id;
+    const { role } = req.body;
 
-        res.status(200).json({
-            success: true,
-            user: {
-                id: req.user._id,
-                name: req.user.name,
-                email: req.user.email,
-                role: req.user.role
-            }
-        });
-    } catch (error) {
-        console.error('GetMe error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
     }
+
+    if (!isValidRole(role)) {
+      res.status(400).json({ success: false, message: "Valid role is required" });
+      return;
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    if (user.role && user.role !== role) {
+      res.status(400).json({ success: false, message: "Role is already fixed and cannot be changed" });
+      return;
+    }
+
+    if (!user.role) {
+      user.role = role;
+      await user.save();
+    }
+
+    const token = signAuthToken(user);
+    res.status(200).json(buildAuthResponse(user, token));
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Update user details
-// @route   PUT /api/auth/updatedetails
-// @access  Private
-export const updateDetails = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
+export const handleGoogleCallback = async (req: Request, res: Response): Promise<void> => {
+  const user = (req as Request & { user?: IUser }).user;
 
-        const { name, email } = req.body;
+  if (!user) {
+    res.redirect(buildFrontendCallbackUrl({ error: "google_auth_failed" }));
+    return;
+  }
 
-        // If email is changing, check for duplicates
-        if (email && email !== req.user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Email is already in use'
-                });
-                return;
-            }
-        }
+  const token = signAuthToken(user);
 
-        const user = await User.findByIdAndUpdate(
-            req.user.id,
-            { name, email },
-            { new: true, runValidators: true }
-        );
-
-        if (!user) {
-            res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-            return;
-        }
-
-        res.status(200).json({
-            success: true,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('UpdateDetails error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during update'
-        });
-    }
+  res.redirect(
+    buildFrontendCallbackUrl({
+      token,
+      email: user.email,
+      role: user.role || "",
+      rolePending: String(!user.role),
+    })
+  );
 };
 
-// @desc    Login with Google
-// @route   POST /api/auth/google
-// @access  Public
-export const googleLogin = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { token, role } = req.body;
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-        // Verify the token
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-
-        const payload = ticket.getPayload();
-        if (!payload) {
-            res.status(400).json({ success: false, message: 'Invalid Google Token' });
-            return;
-        }
-
-        const { email, name, sub: googleId, picture } = payload;
-
-        if (!email) {
-            res.status(400).json({ success: false, message: 'Google token missing email' });
-            return;
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ email });
-
-        if (!user) {
-            // Register new user
-            const userRole = role === 'Teacher' || role === 'Student' ? role : 'Student';
-
-            user = await User.create({
-                name,
-                email,
-                googleId,
-                role: userRole,
-                avatar: picture
-            });
-        } else {
-            // If user exists but has no googleId or avatar, update it
-            let updated = false;
-            if (!user.googleId) {
-                user.googleId = googleId;
-                updated = true;
-            }
-            if (picture && !user.avatar) {
-                user.avatar = picture;
-                updated = true;
-            }
-            if (updated) await user.save();
-        }
-
-        // Generate token
-        const appToken = generateToken(user._id.toString());
-
-        res.status(200).json({
-            success: true,
-            token: appToken,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatar: user.avatar
-            }
-        });
-
-    } catch (error) {
-        console.error('Google login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during Google login'
-        });
-    }
-};
-
-// @desc    Get top users by points
-// @route   GET /api/auth/leaderboard
-// @access  Public
-export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const users = await User.find({ role: 'Student' })
-            .select('name points')
-            .sort({ points: -1 })
-            .limit(10);
-
-        res.status(200).json({
-            success: true,
-            data: users
-        });
-    } catch (error) {
-        console.error('Leaderboard error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error fetching leaderboard'
-        });
-    }
+export const handleGoogleFailure = (_req: Request, res: Response): void => {
+  res.redirect(buildFrontendCallbackUrl({ error: "google_auth_failed" }));
 };

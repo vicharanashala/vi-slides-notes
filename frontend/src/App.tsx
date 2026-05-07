@@ -1,81 +1,56 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import SessionView from './pages/SessionView';
-import SessionSummary from './pages/SessionSummary';
-import Assignments from './pages/Assignments';
-import AssignmentDetails from './pages/AssignmentDetails';
-import GuestJoinForm from './pages/GuestJoinForm';
-import QueryPPTView from './pages/QueryPPTView';
-import QueryAsk from './pages/QueryAsk';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import type { ReactElement } from 'react'
+import AuthPage from './pages/auth/AuthPage'
+import TeacherDashboard from './pages/dashboard/TeacherDashboard'
+import StudentPage from './pages/dashboard/StudentPage'
+import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 
-const App: React.FC = () => {
-    return (
-        <AuthProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    {/* Public route for guest join and query ask */}
-                    <Route path="/join/:code" element={<GuestJoinForm />} />
-                    <Route path="/ask/:code" element={<QueryAsk />} />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code"
-                        element={
-                            <ProtectedRoute>
-                                <SessionView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/session/:code/summary"
-                        element={
-                            <ProtectedRoute>
-                                <SessionSummary />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments"
-                        element={
-                            <ProtectedRoute>
-                                <Assignments />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/assignments/:id"
-                        element={
-                            <ProtectedRoute>
-                                <AssignmentDetails />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/query-mode"
-                        element={
-                            <ProtectedRoute>
-                                <QueryPPTView />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-            </Router>
-        </AuthProvider>
-    );
-};
+type UserRole = 'teacher' | 'student'
 
-export default App;
+const readAuthState = (): { token: string | null; role: UserRole | null } => {
+  const token = localStorage.getItem('token')
+  const roleRaw = localStorage.getItem('role')
+  const role: UserRole | null = roleRaw === 'teacher' || roleRaw === 'student' ? roleRaw : null
+
+  return { token, role }
+}
+
+function EntryRoute() {
+  const { token, role } = readAuthState()
+
+  if (!token || !role) {
+    return <AuthPage />
+  }
+
+  return <Navigate to={role === 'teacher' ? '/teacher' : '/student'} replace />
+}
+
+function ProtectedRoleRoute({ role, element }: { role: UserRole; element: ReactElement }) {
+  const { token, role: currentRole } = readAuthState()
+
+  if (!token || !currentRole) {
+    return <Navigate to="/" replace />
+  }
+
+  if (currentRole !== role) {
+    return <Navigate to={currentRole === 'teacher' ? '/teacher' : '/student'} replace />
+  }
+
+  return element
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<EntryRoute />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/teacher" element={<ProtectedRoleRoute role="teacher" element={<TeacherDashboard />} />} />
+        <Route path="/student" element={<ProtectedRoleRoute role="student" element={<StudentPage />} />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
