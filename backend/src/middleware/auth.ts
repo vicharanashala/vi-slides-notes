@@ -1,84 +1,85 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { UserRole } from "../models/userModel.js";
 
-interface JwtPayload {
-    id: string;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+const getJWTSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in .env");
+  }
+  return secret;
+};
+
+export interface AuthTokenPayload {
+  id: string;
+  email: string;
+  role?: UserRole | null;
+  rolePending?: boolean;
 }
 
-export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        let token: string | undefined;
+export interface AuthenticatedRequest extends Request {
+  user?: AuthTokenPayload;
+}
 
-        // Check for token in Authorization header
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1];
-        }
+export const requireAuth = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const authHeader = req.header("Authorization");
 
-        if (!token) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized to access this route'
-            });
-            return;
-        }
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res.status(401).json({ success: false, message: "Authorization token is required" });
+    return;
+  }
 
-        try {
-            // Verify token
-            const jwtSecret = process.env.JWT_SECRET;
-            if (!jwtSecret) {
-                throw new Error('JWT_SECRET is not defined');
-            }
+  const token = authHeader.replace("Bearer ", "").trim();
 
-            const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+  try {
+    const decoded = jwt.verify(token, getJWTSecret()) as jwt.JwtPayload & AuthTokenPayload;
 
-            // Get user from token
-            const user = await User.findById(decoded.id);
-
-            if (!user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'User not found'
-                });
-                return;
-            }
-
-            req.user = user;
-            next();
-        } catch (error) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized to access this route'
-            });
-            return;
-        }
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+    if (!decoded.id || !decoded.email) {
+      res.status(401).json({ success: false, message: "Invalid token payload" });
+      return;
     }
-};
 
-// Middleware to check if user has specific role
-export const authorize = (...roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Not authorized'
-            });
-            return;
-        }
-
-        if (!roles.includes(req.user.role)) {
-            res.status(403).json({
-                success: false,
-                message: `User role '${req.user.role}' is not authorized to access this route`
-            });
-            return;
-        }
-
-        next();
+    (req as AuthenticatedRequest).user = {
+      id: String(decoded.id),
+      email: String(decoded.email),
+      role: decoded.role ?? null,
+      rolePending: Boolean(decoded.rolePending),
     };
+
+    next();
+  } catch {
+    res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
 };
+
+export const requireRole = (...roles: UserRole[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as AuthenticatedRequest).user;
+
+    if (!user) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    if (!user.role) {
+      res.status(403).json({ success: false, message: "Complete role setup to continue" });
+      return;
+    }
+
+    if (!roles.includes(user.role)) {
+      res.status(403).json({ success: false, message: "You do not have access to this action" });
+      return;
+    }
+
+    next();
+  };
+};
+
+export const requireTeacher = requireRole("teacher");
+export const requireStudent = requireRole("student");
