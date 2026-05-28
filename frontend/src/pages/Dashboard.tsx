@@ -7,6 +7,33 @@ import { useTheme } from '../contexts/ThemeContext';
 
 import CertificateCard from '../components/CertificateCard';
 import Toast from '../components/Toast';
+import RecentSession from "../components/RecentSession";
+
+// key to access recent sessions
+const RECENT_SESSIONS_KEY = 'recent_sessions';
+
+const loadRecentSessions = (): RecentSession[] => {
+
+    // ensuring that code runs on browser side(client)
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    try {
+        const saved = window.localStorage.getItem(RECENT_SESSIONS_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveRecentSessions = (sessions: RecentSession[]) => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.localStorage.setItem(RECENT_SESSIONS_KEY, JSON.stringify(sessions));
+};
 
 const Dashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -18,6 +45,7 @@ const Dashboard: React.FC = () => {
     const [sessionTitle, setSessionTitle] = useState('');
     const [error, setError] = useState('');
     const [pastSessions, setPastSessions] = useState<any[]>([]);
+    const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
     const [hiddenCerts, setHiddenCerts] = useState<string[]>(() => {
         const saved = localStorage.getItem('hidden_certs');
         return saved ? JSON.parse(saved) : [];
@@ -29,11 +57,35 @@ const Dashboard: React.FC = () => {
     const [activeSession, setActiveSession] = useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+    const recordRecentSession = (session: { title: string; code: string }) => {
+        if (!session?.code) {
+            return;
+        }
+
+        const nextSessions = [
+            {
+                title: session.title.trim(),
+                code: session.code,
+                lastOpenedAt: new Date().toISOString()
+            },
+            ...loadRecentSessions().filter(savedSession => savedSession.code !== session.code)
+        ].slice(0, 5);
+
+        setRecentSessions(nextSessions);
+        saveRecentSessions(nextSessions);
+    };
+
+    useEffect(() => {
+        setRecentSessions(loadRecentSessions());
+    }, []);
+
     useEffect(() => {
         const fetchActiveSession = async () => {
             try {
                 const response = await sessionService.getActiveSession();
                 if (response.success && response.data) {
+                    //record the active session
+                    recordRecentSession(response.data);
                     // Only redirect students directly to session
                     // Teachers should see dashboard with controls and QR code
                     if (user?.role === 'Student') {
@@ -102,6 +154,7 @@ const Dashboard: React.FC = () => {
         try {
             const response = await sessionService.createSession({ title: sessionTitle });
             if (response.success) {
+                recordRecentSession(response.data);
                 navigate(`/session/${response.data.code}`);
             }
         } catch (err: any) {
@@ -113,18 +166,76 @@ const Dashboard: React.FC = () => {
         e.preventDefault();
         if (!joinCode.trim()) return;
 
+        const normalizedCode = joinCode.trim();
         setError('');
         try {
-            const response = await sessionService.joinSession(joinCode);
+            const response = await sessionService.joinSession(normalizedCode);
             if (response.success) {
+                recordRecentSession(response.data);
                 navigate(`/session/${response.data.code}`);
             }
         } catch (err: any) {
+            if (err.response?.status === 404 && getRecentSession(normalizedCode)) {
+                showTerminatedRecentSessionToast(normalizedCode);
+                return;
+            }
+
             setError(err.response?.data?.message || 'Failed to join session. Please check the code.');
         }
     };
 
+    const clearRecentSessions = () => {
+        setRecentSessions([]);
+        saveRecentSessions([]);
+    };
 
+    const getRecentSession = (code: string) => {
+        return loadRecentSessions().find(savedSession => savedSession.code === code);
+    };
+
+    const showTerminatedRecentSessionToast = (code: string) => {
+        const recentSession = getRecentSession(code);
+        const label = recentSession?.title || code;
+
+        setToast({
+            message: `${label} has already ended. Start or join a new session instead.`,
+            type: 'error'
+        });
+    };
+
+    const handleOpenRecentSession = async (code: string) => {
+        try {
+            const response = await sessionService.getSessionDetails(code);
+            if (response.success && response.data.status === 'ended') {
+                showTerminatedRecentSessionToast(code);
+                return;
+            }
+
+            if (response.success) {
+                navigate(`/session/${code}`);
+            }
+        } catch (err: any) {
+            if (err.response?.status === 404 && getRecentSession(code)) {
+                showTerminatedRecentSessionToast(code);
+                return;
+            }
+
+            setToast({
+                message: err.response?.data?.message || 'Failed to open session',
+                type: 'error'
+            });
+        }
+    };
+
+    const formatLastOpened = (timestamp: string) => {
+        const date = new Date(timestamp);
+        return date.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    };
 
     if (loading) {
         return (
@@ -267,6 +378,60 @@ const Dashboard: React.FC = () => {
                     )}
                 </div>
 
+                <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                        <div>
+                            <h3 style={{ marginBottom: '0.25rem' }}>Recent Sessions</h3>
+                            <p className="text-muted">Jump back into your latest live sessions.</p>
+                        </div>
+                        {recentSessions.length > 0 && (
+                            <button
+                                onClick={clearRecentSessions}
+                                className="btn"
+                                style={{ background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-surface)' }}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {recentSessions.length === 0 ? (
+                        <p className="text-muted">Start or join a session to see it here.</p>
+                    ) : (
+                        <div style={{ display: 'grid', gap: '0.75rem' }}>
+                            {recentSessions.map((session) => (
+                                <div
+                                    key={session.code}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        padding: '1rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid var(--color-surface)'
+                                    }}
+                                >
+                                    <div>
+                                        <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{session.title}</p>
+                                        <p className="text-muted" style={{ fontSize: '0.9rem' }}>Code: {session.code}</p>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <span className="text-muted" style={{ fontSize: '0.9rem' }}>{formatLastOpened(session.lastOpenedAt)}</span>
+                                        <button
+                                            onClick={() => handleOpenRecentSession(session.code)}
+                                            className="btn btn-primary"
+                                        >
+                                            Open
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Quick Actions Grid */}
                 <div style={{
                     display: 'grid',
@@ -377,7 +542,8 @@ const Dashboard: React.FC = () => {
                                                     sessionCode={session.code}
                                                     studentName={user?.name || 'Student'}
                                                     date={session.createdAt}
-                                                    teacherName="Tarun Venkat"
+                                                    teacherName={session.teacher.name}
+                                                    /*I need to do it so the teachers name is displayed respective of teacher.*/
                                                     onDelete={() => handleDeleteCert(session._id)}
                                                 />
                                             ))}
