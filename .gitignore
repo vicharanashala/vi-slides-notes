@@ -1,20 +1,11 @@
-node_modules
+node_modules/
 .env
+dist/
+build/
 .DS_Store
-dist
-build
-coverage
-.vscode
-.idea
 *.log
-
-# Frontend-specific
-frontend/dist
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-
-# Backend-specific
-backend/dist
-backend/coverage
+.vscode/
+.idea/
+*.swp
+*.swo
+coverage/
